@@ -1,0 +1,302 @@
+import 'package:flutter/material.dart';
+import '../theme/theme.dart';
+import '../widgets/custom_card.dart';
+import '../widgets/custom_button.dart';
+import '../widgets/custom_text_field.dart';
+import '../models/user.dart';
+import '../routes/app_routes.dart';
+
+/// Profile & Settings screen
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final _nameController = TextEditingController();
+  String _selectedCurrency = 'USD';
+  bool _isEditingName = false;
+  final List<String> _currencies = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD'];
+
+  @override
+  void initState() {
+    super.initState();
+    final user = MockUser.getCurrentUser();
+    _nameController.text = user.name;
+    _selectedCurrency = user.currency;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void _handleSaveName() {
+    if (_nameController.text.isNotEmpty) {
+      setState(() {
+        _isEditingName = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Name updated successfully!'),
+          backgroundColor: AppColors.secondary,
+        ),
+      );
+    }
+  }
+
+  void _showResetDataDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Data'),
+        content: const Text(
+          'Are you sure you want to reset all your data? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Data reset (UI only - no actual data)'),
+                  backgroundColor: AppColors.secondary,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.warning,
+            ),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleLogout() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+            },
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = MockUser.getCurrentUser();
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Profile & Settings'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          children: [
+            // User Profile Card
+            CustomCard(
+              child: Column(
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: AppColors.secondary.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.person,
+                      size: 40,
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  if (_isEditingName) ...[
+                    CustomTextField(
+                      label: 'Name',
+                      controller: _nameController,
+                      prefixIcon: Icons.person_outlined,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: CustomButton(
+                            text: 'Cancel',
+                            onPressed: () {
+                              setState(() {
+                                _isEditingName = false;
+                                _nameController.text = user.name;
+                              });
+                            },
+                            isOutlined: true,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: CustomButton(
+                            text: 'Save',
+                            onPressed: _handleSaveName,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    Text(
+                      user.name,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      user.email,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _isEditingName = true;
+                        });
+                      },
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text('Change Name'),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // Currency Selector
+            CustomCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Currency',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  DropdownButtonFormField<String>(
+                    value: _selectedCurrency,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: AppColors.background,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: AppColors.textSecondary.withOpacity(0.3),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: AppColors.textSecondary.withOpacity(0.3),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: AppColors.secondary,
+                          width: 2,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                    ),
+                    items: _currencies.map((currency) {
+                      return DropdownMenuItem<String>(
+                        value: currency,
+                        child: Text(currency),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCurrency = value!;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Currency changed to $value'),
+                          backgroundColor: AppColors.secondary,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // Reset Data Button
+            CustomCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Data Management',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  CustomButton(
+                    text: 'Reset Data',
+                    onPressed: _showResetDataDialog,
+                    backgroundColor: AppColors.warning,
+                    icon: Icons.refresh,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // Logout Button
+            CustomButton(
+              text: 'Logout',
+              onPressed: _handleLogout,
+              backgroundColor: AppColors.primary,
+              icon: Icons.logout,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

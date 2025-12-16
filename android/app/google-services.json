@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "85302631658",
+    "project_id": "paisa-panic",
+    "storage_bucket": "paisa-panic.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:85302631658:android:c0c9a2d2316832a5894b93",
+        "android_client_info": {
+          "package_name": "com.example.paisa_panic"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAYBOFQ-x5aC1F7Iptypy0hGMvzyKPSUA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
