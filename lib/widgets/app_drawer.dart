@@ -8,15 +8,11 @@ import 'package:provider/provider.dart';
 class AppDrawer extends StatelessWidget {
   final String currentRoute;
 
-  const AppDrawer({
-    super.key,
-    required this.currentRoute,
-  });
+  const AppDrawer({super.key, required this.currentRoute});
 
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    final isWeb = MediaQuery.of(context).size.width > 600;
 
     return Drawer(
       child: SafeArea(
@@ -29,11 +25,7 @@ class AppDrawer extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.calculate,
-                    size: 40,
-                    color: Colors.white,
-                  ),
+                  const Icon(Icons.calculate, size: 40, color: Colors.white),
                   const SizedBox(height: 8),
                   const Text(
                     'Math Says I\'m Broke',
@@ -175,4 +167,3 @@ class AppDrawer extends StatelessWidget {
     );
   }
 }
-

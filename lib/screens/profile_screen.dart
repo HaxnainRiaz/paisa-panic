@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/theme.dart';
 import '../widgets/custom_card.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
-import '../models/user.dart';
 import '../routes/app_routes.dart';
+import '../providers/auth_provider.dart';
+import '../widgets/app_scaffold.dart';
 
 /// Profile & Settings screen
 class ProfileScreen extends StatefulWidget {
@@ -19,13 +21,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _selectedCurrency = 'USD';
   bool _isEditingName = false;
   final List<String> _currencies = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD'];
+  bool _initialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    final user = MockUser.getCurrentUser();
-    _nameController.text = user.name;
-    _selectedCurrency = user.currency;
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      final authProvider = Provider.of<AuthProvider>(context);
+      final user = authProvider.user;
+      _nameController.text = user?.displayName ?? '';
+      _selectedCurrency = 'USD';
+      _initialized = true;
+    }
   }
 
   @override
@@ -71,9 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warning,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
             child: const Text('Reset'),
           ),
         ],
@@ -106,13 +111,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = MockUser.getCurrentUser();
+    final authProvider = Provider.of<AuthProvider>(context);
+    final user = authProvider.user;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Profile & Settings'),
-      ),
+    return AppScaffold(
+      title: 'Profile & Settings',
+      currentRoute: AppRoutes.profile,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
@@ -150,7 +154,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onPressed: () {
                               setState(() {
                                 _isEditingName = false;
-                                _nameController.text = user.name;
+                                _nameController.text = user?.displayName ?? '';
                               });
                             },
                             isOutlined: true,
@@ -167,7 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ] else ...[
                     Text(
-                      user.name,
+                      user?.displayName ?? 'Your Name',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -175,7 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      user.email,
+                      user?.email ?? 'you@example.com',
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,
@@ -204,10 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   const Text(
                     'Currency',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   DropdownButtonFormField<String>(
@@ -269,10 +270,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   const Text(
                     'Data Management',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   CustomButton(
@@ -299,4 +297,3 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
-

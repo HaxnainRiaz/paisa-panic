@@ -5,7 +5,7 @@ import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/app_scaffold.dart';
 import '../models/category.dart';
-import '../models/transaction.dart';
+import '../models/transaction.dart' as app_models;
 import '../providers/auth_provider.dart';
 import '../services/firestore_service.dart';
 import '../routes/app_routes.dart';
@@ -45,16 +45,28 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   Future<void> _loadCategories() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.user == null) return;
+    if (authProvider.user == null) {
+      setState(() {
+        _categoriesLoaded = true;
+      });
+      return;
+    }
 
-    final categories = await _firestoreService.getUserCategories(
-      authProvider.user!.uid,
-      TransactionType.expense,
-    );
-    setState(() {
-      _categories = categories;
-      _categoriesLoaded = true;
-    });
+    try {
+      final categories = await _firestoreService.getUserCategories(
+        authProvider.user!.uid,
+        app_models.TransactionType.expense,
+      );
+      setState(() {
+        _categories = categories;
+        _categoriesLoaded = true;
+      });
+    } catch (_) {
+      setState(() {
+        _categories = [];
+        _categoriesLoaded = true;
+      });
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -81,10 +93,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       if (authProvider.user == null) return;
 
       final amount = double.parse(_amountController.text);
-      final transaction = Transaction(
+      final transaction = app_models.Transaction(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         amount: amount,
-        type: TransactionType.expense,
+        type: app_models.TransactionType.expense,
         category: _selectedCategoryName ?? '',
         date: _selectedDate,
         note: _noteController.text.isEmpty ? null : _noteController.text,

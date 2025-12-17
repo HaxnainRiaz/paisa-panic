@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/theme.dart';
@@ -212,6 +213,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required double totalExpense,
     required double remainingBudget,
   }) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = min(screenWidth * 0.8, 360.0);
+
     return SizedBox(
       height: 120,
       child: ListView(
@@ -219,7 +223,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
         children: [
           SizedBox(
-            width: MediaQuery.of(context).size.width - 64,
+            width: cardWidth,
             child: SummaryCard(
               title: 'Current Balance',
               amount: '\$${currentBalance.toStringAsFixed(2)}',
@@ -232,7 +236,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(width: AppSpacing.md),
           SizedBox(
-            width: MediaQuery.of(context).size.width - 64,
+            width: cardWidth,
             child: SummaryCard(
               title: 'Monthly Income',
               amount: '\$${totalIncome.toStringAsFixed(2)}',
@@ -242,7 +246,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(width: AppSpacing.md),
           SizedBox(
-            width: MediaQuery.of(context).size.width - 64,
+            width: cardWidth,
             child: SummaryCard(
               title: 'Monthly Expense',
               amount: '\$${totalExpense.toStringAsFixed(2)}',
@@ -253,7 +257,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(width: AppSpacing.md),
           SizedBox(
-            width: MediaQuery.of(context).size.width - 64,
+            width: cardWidth,
             child: SummaryCard(
               title: 'Remaining Budget',
               amount: '\$${remainingBudget.toStringAsFixed(2)}',
@@ -323,7 +327,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ),
-        const SizedBox(width: AppSpacing.xs),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Column(
             children: [
@@ -346,7 +350,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xs),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       '\$${monthlyBudget.toStringAsFixed(2)}',
                       style: const TextStyle(
@@ -358,7 +362,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.sm),
               CustomCard(
                 onTap: () {
                   Navigator.of(context).pushNamed(AppRoutes.reports);
@@ -370,7 +374,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       size: 48,
                       color: AppColors.secondary,
                     ),
-                    const SizedBox(height: AppSpacing.xs),
+                    const SizedBox(height: AppSpacing.sm),
                     const Text(
                       'Reports',
                       style: TextStyle(
@@ -410,7 +414,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       size: 32,
                       color: AppColors.secondary,
                     ),
-                    const SizedBox(height: AppSpacing.xs),
+                    const SizedBox(height: AppSpacing.sm),
                     const Text(
                       'Budget',
                       style: TextStyle(
@@ -422,7 +426,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: AppSpacing.xs),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: CustomCard(
                 onTap: () {
@@ -435,7 +439,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       size: 32,
                       color: AppColors.secondary,
                     ),
-                    const SizedBox(height: AppSpacing.xs),
+                    const SizedBox(height: AppSpacing.sm),
                     const Text(
                       'Reports',
                       style: TextStyle(

@@ -5,8 +5,9 @@ import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/app_scaffold.dart';
 import '../models/category.dart';
-import '../models/transaction.dart';
+import '../models/transaction.dart' as app_models;
 import '../providers/auth_provider.dart';
+import '../providers/finance_provider.dart';
 import '../services/firestore_service.dart';
 import '../routes/app_routes.dart';
 
@@ -28,6 +29,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
   DateTime _selectedDate = DateTime.now();
   List<Category> _categories = [];
   bool _isLoading = false;
+
   bool _categoriesLoaded = false;
 
   @override
@@ -45,16 +47,28 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
 
   Future<void> _loadCategories() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.user == null) return;
+    if (authProvider.user == null) {
+      setState(() {
+        _categoriesLoaded = true;
+      });
+      return;
+    }
 
-    final categories = await _firestoreService.getUserCategories(
-      authProvider.user!.uid,
-      TransactionType.income,
-    );
-    setState(() {
-      _categories = categories;
-      _categoriesLoaded = true;
-    });
+    try {
+      final categories = await _firestoreService.getUserCategories(
+        authProvider.user!.uid,
+        app_models.TransactionType.income,
+      );
+      setState(() {
+        _categories = categories;
+        _categoriesLoaded = true;
+      });
+    } catch (_) {
+      setState(() {
+        _categories = [];
+        _categoriesLoaded = true;
+      });
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -81,20 +95,19 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
       if (authProvider.user == null) return;
 
       final amount = double.parse(_amountController.text);
-      final transaction = Transaction(
+      final transaction = app_models.Transaction(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         amount: amount,
-        type: TransactionType.income,
+        type: app_models.TransactionType.income,
         category: _selectedCategoryName ?? '',
         date: _selectedDate,
         source: _sourceController.text.isEmpty ? null : _sourceController.text,
       );
 
       try {
-        await _firestoreService.addTransaction(
-          authProvider.user!.uid,
-          transaction,
-        );
+        // Use FinanceProvider to add transaction (optimistic update & central state)
+        final finance = Provider.of<FinanceProvider>(context, listen: false);
+        await finance.addTransaction(authProvider.user!.uid, transaction);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -154,203 +167,236 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
           body: SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: EdgeInsets.all(
-                  isWeb ? AppSpacing.lg : AppSpacing.md,
-                ),
+                padding: EdgeInsets.all(isWeb ? AppSpacing.lg : AppSpacing.md),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: maxWidth),
                   child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(
-                        Icons.trending_up,
-                        size: 48,
-                        color: AppColors.secondary,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Amount field
-                    CustomTextField(
-                      label: 'Amount',
-                      hint: '0.00',
-                      controller: _amountController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      prefixIcon: Icons.attach_money,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter an amount';
-                        }
-                        if (double.tryParse(value) == null) {
-                          return 'Please enter a valid number';
-                        }
-                        if (double.parse(value) <= 0) {
-                          return 'Amount must be greater than 0';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Category dropdown
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text(
-                          'Income Source',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(
+                            Icons.trending_up,
+                            size: 48,
+                            color: AppColors.secondary,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          value: _selectedCategory,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: AppColors.cardSurface,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: AppColors.textSecondary.withOpacity(0.3),
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: AppColors.textSecondary.withOpacity(0.3),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppColors.secondary,
-                                width: 2,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
+                        const SizedBox(height: 24),
+
+                        // Amount field
+                        CustomTextField(
+                          label: 'Amount',
+                          hint: '0.00',
+                          controller: _amountController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
                           ),
-                          items: _categories.map((category) {
-                            return DropdownMenuItem<String>(
-                              value: category.id,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    _getIconData(category.icon),
-                                    size: 20,
-                                    color: AppColors.secondary,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Flexible(
-                                    child: Text(
-                                      category.name,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedCategory = value;
-                              _selectedCategoryName = _categories
-                                  .firstWhere((c) => c.id == value)
-                                  .name;
-                            });
+                          prefixIcon: Icons.attach_money,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter an amount';
+                            }
+                            if (double.tryParse(value) == null) {
+                              return 'Please enter a valid number';
+                            }
+                            if (double.parse(value) <= 0) {
+                              return 'Amount must be greater than 0';
+                            }
+                            return null;
                           },
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                    // Source field
-                    CustomTextField(
-                      label: 'Source (Optional)',
-                      hint: 'e.g., Company Inc.',
-                      controller: _sourceController,
-                      prefixIcon: Icons.business,
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Date picker
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Date',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        InkWell(
-                          onTap: () => _selectDate(context),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardSurface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: AppColors.textSecondary.withOpacity(0.3),
+                        // Category dropdown
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Income Source',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textPrimary,
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.calendar_today,
-                                  color: AppColors.secondary,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: AppColors.textPrimary,
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              value: _selectedCategory,
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: AppColors.cardSurface,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: AppColors.textSecondary.withOpacity(
+                                      0.3,
+                                    ),
                                   ),
                                 ),
-                              ],
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: AppColors.textSecondary.withOpacity(
+                                      0.3,
+                                    ),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: AppColors.secondary,
+                                    width: 2,
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 16,
+                                ),
+                              ),
+                              items: _categories.map((category) {
+                                return DropdownMenuItem<String>(
+                                  value: category.id,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _getIconData(category.icon),
+                                        size: 20,
+                                        color: AppColors.secondary,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Flexible(
+                                        child: Text(
+                                          category.name,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedCategory = value;
+                                  _selectedCategoryName = _categories
+                                      .firstWhere((c) => c.id == value)
+                                      .name;
+                                });
+                              },
                             ),
-                          ),
+                            if (_categories.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: AppSpacing.md,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'No categories available. You can add categories from the Categories screen.',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSpacing.md),
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        Navigator.of(
+                                          context,
+                                        ).pushNamed(AppRoutes.categories);
+                                      },
+                                      icon: const Icon(Icons.add),
+                                      label: const Text('Add Categories'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Source field
+                        CustomTextField(
+                          label: 'Source (Optional)',
+                          hint: 'e.g., Company Inc.',
+                          controller: _sourceController,
+                          prefixIcon: Icons.business,
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Date picker
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Date',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () => _selectDate(context),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 16,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardSurface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: AppColors.textSecondary.withOpacity(
+                                      0.3,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.calendar_today,
+                                      color: AppColors.secondary,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Save button
+                        CustomButton(
+                          text: 'Save Income',
+                          onPressed: _isLoading ? null : _handleSave,
+                          isLoading: _isLoading,
+                          icon: Icons.check,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32),
-
-                    // Save button
-                    CustomButton(
-                      text: 'Save Income',
-                      onPressed: _isLoading ? null : _handleSave,
-                      isLoading: _isLoading,
-                      icon: Icons.check,
-                    ),
-                  ],
-                ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      );
-    },
+        );
+      },
     );
   }
 
@@ -371,4 +417,3 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
     }
   }
 }
-

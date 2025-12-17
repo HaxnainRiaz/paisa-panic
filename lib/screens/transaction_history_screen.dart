@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../theme/theme.dart';
 import '../widgets/transaction_item.dart';
 import '../widgets/app_scaffold.dart';
-import '../models/transaction.dart';
+import '../models/transaction.dart' as app_models;
 import '../providers/auth_provider.dart';
 import '../services/firestore_service.dart';
 import '../routes/app_routes.dart';
@@ -18,32 +18,30 @@ class TransactionHistoryScreen extends StatefulWidget {
 
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   final FirestoreService _firestoreService = FirestoreService();
-  List<Transaction> _allTransactions = [];
-  List<Transaction> _filteredTransactions = [];
-  TransactionType? _selectedType;
+  List<app_models.Transaction> _allTransactions = [];
+  List<app_models.Transaction> _filteredTransactions = [];
+  app_models.TransactionType? _selectedType;
   String? _selectedCategory;
   String _sortBy = 'date'; // 'date' or 'amount'
 
   void _applyFilters() {
-    setState(() {
-      _filteredTransactions = _allTransactions.where((transaction) {
-        if (_selectedType != null && transaction.type != _selectedType) {
-          return false;
-        }
-        if (_selectedCategory != null &&
-            transaction.category != _selectedCategory) {
-          return false;
-        }
-        return true;
-      }).toList();
-
-      // Sort
-      if (_sortBy == 'date') {
-        _filteredTransactions.sort((a, b) => b.date.compareTo(a.date));
-      } else {
-        _filteredTransactions.sort((a, b) => b.amount.compareTo(a.amount));
+    _filteredTransactions = _allTransactions.where((transaction) {
+      if (_selectedType != null && transaction.type != _selectedType) {
+        return false;
       }
-    });
+      if (_selectedCategory != null &&
+          transaction.category != _selectedCategory) {
+        return false;
+      }
+      return true;
+    }).toList();
+
+    // Sort
+    if (_sortBy == 'date') {
+      _filteredTransactions.sort((a, b) => b.date.compareTo(a.date));
+    } else {
+      _filteredTransactions.sort((a, b) => b.amount.compareTo(a.amount));
+    }
   }
 
   void _showFilterDialog(BuildContext context) {
@@ -70,43 +68,43 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             Row(
               children: [
                 Expanded(
-                  child: RadioListTile<TransactionType?>(
+                  child: RadioListTile<app_models.TransactionType?>(
                     title: const Text('All'),
                     value: null,
                     groupValue: _selectedType,
                     onChanged: (value) {
                       setState(() {
                         _selectedType = value;
+                        _applyFilters();
                       });
-                      _applyFilters();
                       Navigator.pop(context);
                     },
                   ),
                 ),
                 Expanded(
-                  child: RadioListTile<TransactionType?>(
+                  child: RadioListTile<app_models.TransactionType?>(
                     title: const Text('Income'),
-                    value: TransactionType.income,
+                    value: app_models.TransactionType.income,
                     groupValue: _selectedType,
                     onChanged: (value) {
                       setState(() {
                         _selectedType = value;
+                        _applyFilters();
                       });
-                      _applyFilters();
                       Navigator.pop(context);
                     },
                   ),
                 ),
                 Expanded(
-                  child: RadioListTile<TransactionType?>(
+                  child: RadioListTile<app_models.TransactionType?>(
                     title: const Text('Expense'),
-                    value: TransactionType.expense,
+                    value: app_models.TransactionType.expense,
                     groupValue: _selectedType,
                     onChanged: (value) {
                       setState(() {
                         _selectedType = value;
+                        _applyFilters();
                       });
-                      _applyFilters();
                       Navigator.pop(context);
                     },
                   ),
@@ -167,7 +165,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           onPressed: () => _showFilterDialog(context),
         ),
       ],
-      body: StreamBuilder<List<Transaction>>(
+      body: StreamBuilder<List<app_models.Transaction>>(
         stream: _firestoreService.getTransactions(userId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

@@ -55,8 +55,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 final newCategory = Category(
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
                   name: nameController.text,
-                  type: isIncome ? TransactionType.income : TransactionType.expense,
-                  icon: iconController.text.isEmpty ? 'category' : iconController.text,
+                  type: isIncome
+                      ? TransactionType.income
+                      : TransactionType.expense,
+                  icon: iconController.text.isEmpty
+                      ? 'category'
+                      : iconController.text,
                 );
                 setState(() {
                   if (isIncome) {
@@ -114,15 +118,19 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 setState(() {
                   final index = category.type == TransactionType.income
                       ? _incomeCategories.indexWhere((c) => c.id == category.id)
-                      : _expenseCategories.indexWhere((c) => c.id == category.id);
-                  
+                      : _expenseCategories.indexWhere(
+                          (c) => c.id == category.id,
+                        );
+
                   final updatedCategory = Category(
                     id: category.id,
                     name: nameController.text,
                     type: category.type,
-                    icon: iconController.text.isEmpty ? 'category' : iconController.text,
+                    icon: iconController.text.isEmpty
+                        ? 'category'
+                        : iconController.text,
                   );
-                  
+
                   if (category.type == TransactionType.income) {
                     _incomeCategories[index] = updatedCategory;
                   } else {
@@ -160,13 +168,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 }
               });
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Category deleted')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Category deleted')));
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warning,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
             child: const Text('Delete'),
           ),
         ],
@@ -194,7 +200,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               color: isIncome ? AppColors.secondary : AppColors.warning,
             ),
           ),
-          title: Text(category.name),
+          title: Text(category.name, overflow: TextOverflow.ellipsis),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -251,9 +257,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Categories'),
-      ),
+      appBar: AppBar(title: const Text('Categories')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
@@ -265,10 +269,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               children: [
                 const Text(
                   'Income Categories',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 TextButton.icon(
                   onPressed: () => _showAddCategoryDialog(true),
@@ -277,9 +278,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 ),
               ],
             ),
-            CustomCard(
-              child: _buildCategoryList(_incomeCategories, true),
-            ),
+            CustomCard(child: _buildCategoryList(_incomeCategories, true)),
             const SizedBox(height: AppSpacing.lg),
 
             // Expense Categories
@@ -288,10 +287,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               children: [
                 const Text(
                   'Expense Categories',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 TextButton.icon(
                   onPressed: () => _showAddCategoryDialog(false),
@@ -300,13 +296,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 ),
               ],
             ),
-            CustomCard(
-              child: _buildCategoryList(_expenseCategories, false),
-            ),
+            CustomCard(child: _buildCategoryList(_expenseCategories, false)),
           ],
         ),
       ),
     );
   }
 }
-

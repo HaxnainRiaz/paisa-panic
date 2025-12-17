@@ -7,10 +7,7 @@ import 'package:provider/provider.dart';
 class AuthGuard extends StatelessWidget {
   final Widget child;
 
-  const AuthGuard({
-    super.key,
-    required this.child,
-  });
+  const AuthGuard({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -19,20 +16,26 @@ class AuthGuard extends StatelessWidget {
         if (!authProvider.isAuthenticated) {
           // Redirect to login if not authenticated
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.of(context).pushNamedAndRemoveUntil(
-              AppRoutes.login,
-              (route) => false,
-            );
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
           });
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
+
+        // Inform FinanceProvider of current user so it can subscribe to transactions
+        try {
+          final financeProvider = Provider.of<dynamic>(context, listen: false);
+          // ignore: avoid_dynamic_calls
+          financeProvider?.setUser?.call(authProvider.user?.uid);
+        } catch (_) {
+          // ignore errors if FinanceProvider not present
+        }
+
         return child;
       },
     );
   }
 }
-
