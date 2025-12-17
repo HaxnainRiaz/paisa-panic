@@ -6,7 +6,10 @@ import '../services/firestore_service.dart';
 
 /// FinanceProvider: single source of truth for transactions and balances
 class FinanceProvider with ChangeNotifier {
-  final FirestoreService _firestoreService = FirestoreService();
+  final dynamic _firestoreService;
+
+  FinanceProvider({dynamic firestoreService})
+    : _firestoreService = firestoreService ?? FirestoreService();
 
   StreamSubscription<List<Transaction>>? _sub;
   List<Transaction> _transactions = [];

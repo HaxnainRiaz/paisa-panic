@@ -7,11 +7,7 @@ class TransactionItem extends StatelessWidget {
   final Transaction transaction;
   final VoidCallback? onTap;
 
-  const TransactionItem({
-    super.key,
-    required this.transaction,
-    this.onTap,
-  });
+  const TransactionItem({super.key, required this.transaction, this.onTap});
 
   String _formatCurrency(double amount) {
     return '\$${amount.toStringAsFixed(2)}';
@@ -30,7 +26,7 @@ class TransactionItem extends StatelessWidget {
       'Sep',
       'Oct',
       'Nov',
-      'Dec'
+      'Dec',
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
@@ -38,29 +34,51 @@ class TransactionItem extends StatelessWidget {
   IconData _getCategoryIcon(String category) {
     switch (category.toLowerCase()) {
       case 'food':
+      case 'restaurant':
         return Icons.restaurant;
       case 'transport':
+      case 'directions_car':
         return Icons.directions_car;
       case 'shopping':
+      case 'shopping_bag':
         return Icons.shopping_bag;
       case 'entertainment':
         return Icons.movie;
       case 'bills':
+      case 'receipt':
         return Icons.receipt;
       case 'rent':
+      case 'home':
         return Icons.home;
       case 'healthcare':
+      case 'local_hospital':
         return Icons.local_hospital;
       case 'education':
+      case 'school':
         return Icons.school;
       case 'salary':
+      case 'work':
         return Icons.work;
       case 'freelance':
+      case 'laptop':
+      case 'laptop_mac':
         return Icons.laptop;
       case 'investment':
+      case 'trending_up':
+      case 'show_chart':
         return Icons.trending_up;
       case 'business':
+      case 'store':
         return Icons.store;
+      case 'travel':
+      case 'flight':
+        return Icons.flight;
+      case 'pet':
+      case 'pets':
+        return Icons.pets;
+      case 'charity':
+      case 'volunteer_activism':
+        return Icons.volunteer_activism;
       default:
         return Icons.category;
     }
@@ -165,4 +183,3 @@ class TransactionItem extends StatelessWidget {
     );
   }
 }
-

@@ -36,11 +36,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   StreamSubscription<List<Category>>? _categoriesSub;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final auth = Provider.of<AuthProvider>(context, listen: false);
@@ -52,18 +47,28 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         .listen((list) {
           final filtered = list.where((c) => c.type == widget.type).toList();
 
-          // Merge with defaults
-          final defaults = MockCategories.getExpenseCategories();
-          final map = {for (var d in defaults) d.name: d};
+          // Merge with defaults so recommended categories are always available
+          final defaults = widget.type == app_models.TransactionType.income
+              ? MockCategories.getIncomeCategories()
+              : MockCategories.getExpenseCategories();
+
+          final Map<String, Category> map = {for (var d in defaults) d.name: d};
           for (var c in filtered) {
             if (c.isCustom) {
-              map[c.id] = c;
+              map[c.id] = c; // custom categories keyed by id
             } else {
-              map[c.name] = c;
+              map[c.name] = c; // override default
             }
           }
 
-          if (mounted) setState(() => _categories = map.values.toList());
+          if (mounted) {
+            setState(() {
+              _categories = map.values.toList();
+              if (_categories.isNotEmpty && _selectedCategory == null) {
+                _selectedCategory = _categories.first;
+              }
+            });
+          }
         });
   }
 
@@ -81,7 +86,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     if (_selectedCategory == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Please select a category')));
+      ).showSnackBar(const SnackBar(content: Text('Select a category')));
       return;
     }
 
@@ -109,19 +114,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         SnackBar(
           content: Text(
             widget.type == app_models.TransactionType.income
-                ? 'Income added successfully'
-                : 'Expense added successfully',
+                ? 'Income added'
+                : 'Expense added',
           ),
         ),
       );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/theme.dart';
@@ -30,45 +32,48 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
   List<Category> _categories = [];
   bool _isLoading = false;
 
-  bool _categoriesLoaded = false;
+  StreamSubscription<List<Category>>? _categoriesSub;
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    _subscribeCategories();
   }
 
   @override
   void dispose() {
     _amountController.dispose();
     _sourceController.dispose();
+    _categoriesSub?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadCategories() async {
+  void _subscribeCategories() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.user == null) {
-      setState(() {
-        _categoriesLoaded = true;
-      });
-      return;
-    }
+    if (authProvider.user == null) return;
 
-    try {
-      final categories = await _firestoreService.getUserCategories(
-        authProvider.user!.uid,
-        app_models.TransactionType.income,
-      );
-      setState(() {
-        _categories = categories;
-        _categoriesLoaded = true;
-      });
-    } catch (_) {
-      setState(() {
-        _categories = [];
-        _categoriesLoaded = true;
-      });
-    }
+    _categoriesSub?.cancel();
+    _categoriesSub = _firestoreService
+        .userCategoriesStream(authProvider.user!.uid)
+        .listen((list) {
+          final filtered = list
+              .where((c) => c.type == app_models.TransactionType.income)
+              .toList();
+          final defaults = MockCategories.getIncomeCategories();
+          final map = {for (var d in defaults) d.name: d};
+          for (var c in filtered) {
+            if (c.isCustom) {
+              map[c.id] = c;
+            } else {
+              map[c.name] = c;
+            }
+          }
+          if (mounted) {
+            setState(() {
+              _categories = map.values.toList();
+            });
+          }
+        });
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -146,15 +151,6 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_categoriesLoaded) {
-      return AppScaffold(
-        title: 'Add Income',
-        currentRoute: AppRoutes.addIncome,
-        showBottomNav: false,
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWeb = constraints.maxWidth > 600;

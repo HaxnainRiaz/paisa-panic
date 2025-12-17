@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/theme.dart';
@@ -10,7 +9,6 @@ import '../providers/auth_provider.dart';
 import '../services/firestore_service.dart';
 import '../routes/app_routes.dart';
 
-/// Dashboard/Home screen showing financial overview
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -58,11 +56,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Calculate totals
           double totalIncome = 0;
           double totalExpense = 0;
-          for (var transaction in currentMonthTransactions) {
-            if (transaction.type == TransactionType.income) {
-              totalIncome += transaction.amount;
+          for (var t in currentMonthTransactions) {
+            if (t.type == TransactionType.income) {
+              totalIncome += t.amount;
             } else {
-              totalExpense += transaction.amount;
+              totalExpense += t.amount;
             }
           }
           final currentBalance = totalIncome - totalExpense;
@@ -70,457 +68,192 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Get recent transactions (last 5)
           final recentTransactions = transactions.take(5).toList();
 
-          return _buildDashboardContent(
-            context,
-            currentBalance: currentBalance,
-            totalIncome: totalIncome,
-            totalExpense: totalExpense,
-            recentTransactions: recentTransactions,
-            userId: userId,
+          return Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Summary cards
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment:
+                          MainAxisAlignment.center, // center all cards
+                      children: [
+                        _buildSummaryCard(
+                          title: 'Current Balance',
+                          amount: currentBalance,
+                          icon: Icons.account_balance_wallet,
+                          color: currentBalance >= 0
+                              ? AppColors.secondary
+                              : AppColors.warning,
+                        ),
+                        const SizedBox(width: 8), // smaller space between cards
+                        _buildSummaryCard(
+                          title: 'Monthly Income',
+                          amount: totalIncome,
+                          icon: Icons.trending_up,
+                          color: AppColors.secondary,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildSummaryCard(
+                          title: 'Monthly Expense',
+                          amount: totalExpense,
+                          icon: Icons.trending_down,
+                          color: AppColors.warning,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // Quick Action Buttons: Budget, Reports, Categories
+                  Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center, // centers buttons
+                    children: [
+                      Flexible(
+                        flex: 1,
+                        child: _buildQuickAction(
+                          title: 'Budget',
+                          icon: Icons.savings,
+                          onTap: () {
+                            Navigator.of(context).pushNamed(AppRoutes.budget);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8), // smaller space between buttons
+                      Flexible(
+                        flex: 1,
+                        child: _buildQuickAction(
+                          title: 'Reports',
+                          icon: Icons.analytics,
+                          onTap: () {
+                            Navigator.of(context).pushNamed(AppRoutes.reports);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        flex: 1,
+                        child: _buildQuickAction(
+                          title: 'Categories',
+                          icon: Icons.category,
+                          onTap: () {
+                            Navigator.of(
+                              context,
+                            ).pushNamed(AppRoutes.categories);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Recent Transactions
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Recent Transactions',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(
+                            context,
+                          ).pushNamed(AppRoutes.transactionHistory);
+                        },
+                        child: const Text('View All'),
+                      ),
+                    ],
+                  ),
+                  if (recentTransactions.isEmpty)
+                    const Center(
+                      child: Text(
+                        'No transactions yet',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    )
+                  else
+                    Column(
+                      children: recentTransactions
+                          .map((t) => TransactionItem(transaction: t))
+                          .toList(),
+                    ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+              ),
+            ),
           );
         },
       ),
     );
   }
 
-  Widget _buildDashboardContent(
-    BuildContext context, {
-    required double currentBalance,
-    required double totalIncome,
-    required double totalExpense,
-    required List<Transaction> recentTransactions,
-    required String userId,
+  Widget _buildSummaryCard({
+    required String title,
+    required double amount,
+    required IconData icon,
+    required Color color,
   }) {
-    return FutureBuilder<Map<String, dynamic>?>(
-      future: _firestoreService.getBudget(userId),
-      builder: (context, budgetSnapshot) {
-        final budget = budgetSnapshot.data;
-        final monthlyBudget = (budget?['amount'] ?? 0).toDouble();
-        final remainingBudget = monthlyBudget - totalExpense;
-
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final isWeb = constraints.maxWidth > 600;
-            final isLargeWeb = constraints.maxWidth > 900;
-
-            return SingleChildScrollView(
-              padding: EdgeInsets.all(isWeb ? AppSpacing.lg : AppSpacing.md),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: isLargeWeb ? 1200 : double.infinity,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Summary cards
-                      if (isLargeWeb)
-                        _buildWebSummaryGrid(
-                          currentBalance: currentBalance,
-                          totalIncome: totalIncome,
-                          totalExpense: totalExpense,
-                          remainingBudget: remainingBudget,
-                        )
-                      else
-                        _buildMobileSummaryCards(
-                          context,
-                          currentBalance: currentBalance,
-                          totalIncome: totalIncome,
-                          totalExpense: totalExpense,
-                          remainingBudget: remainingBudget,
-                        ),
-
-                      SizedBox(height: isWeb ? AppSpacing.xl : AppSpacing.lg),
-
-                      // Main content area
-                      if (isLargeWeb)
-                        _buildWebContentLayout(
-                          recentTransactions: recentTransactions,
-                          monthlyBudget: monthlyBudget,
-                        )
-                      else
-                        _buildMobileContentLayout(
-                          context,
-                          recentTransactions: recentTransactions,
-                          monthlyBudget: monthlyBudget,
-                        ),
-                    ],
-                  ),
+    return Padding(
+      padding: const EdgeInsets.only(right: AppSpacing.md),
+      child: SizedBox(
+        width: 160,
+        child: CustomCard(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 28),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildWebSummaryGrid({
-    required double currentBalance,
-    required double totalIncome,
-    required double totalExpense,
-    required double remainingBudget,
-  }) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 4,
-      crossAxisSpacing: AppSpacing.md,
-      mainAxisSpacing: AppSpacing.md,
-      childAspectRatio: 2.5,
-      children: [
-        SummaryCard(
-          title: 'Current Balance',
-          amount: '\$${currentBalance.toStringAsFixed(2)}',
-          icon: Icons.account_balance_wallet,
-          iconColor: AppColors.secondary,
-          amountColor: currentBalance >= 0
-              ? AppColors.secondary
-              : AppColors.warning,
-        ),
-        SummaryCard(
-          title: 'Monthly Income',
-          amount: '\$${totalIncome.toStringAsFixed(2)}',
-          icon: Icons.trending_up,
-          iconColor: AppColors.secondary,
-        ),
-        SummaryCard(
-          title: 'Monthly Expense',
-          amount: '\$${totalExpense.toStringAsFixed(2)}',
-          icon: Icons.trending_down,
-          iconColor: AppColors.warning,
-          amountColor: AppColors.warning,
-        ),
-        SummaryCard(
-          title: 'Remaining Budget',
-          amount: '\$${remainingBudget.toStringAsFixed(2)}',
-          icon: Icons.savings,
-          iconColor: remainingBudget >= 0
-              ? AppColors.secondary
-              : AppColors.warning,
-          amountColor: remainingBudget >= 0
-              ? AppColors.secondary
-              : AppColors.warning,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMobileSummaryCards(
-    BuildContext context, {
-    required double currentBalance,
-    required double totalIncome,
-    required double totalExpense,
-    required double remainingBudget,
-  }) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = min(screenWidth * 0.8, 360.0);
-
-    return SizedBox(
-      height: 120,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-        children: [
-          SizedBox(
-            width: cardWidth,
-            child: SummaryCard(
-              title: 'Current Balance',
-              amount: '\$${currentBalance.toStringAsFixed(2)}',
-              icon: Icons.account_balance_wallet,
-              iconColor: AppColors.secondary,
-              amountColor: currentBalance >= 0
-                  ? AppColors.secondary
-                  : AppColors.warning,
-            ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '\$${amount.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.md),
-          SizedBox(
-            width: cardWidth,
-            child: SummaryCard(
-              title: 'Monthly Income',
-              amount: '\$${totalIncome.toStringAsFixed(2)}',
-              icon: Icons.trending_up,
-              iconColor: AppColors.secondary,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          SizedBox(
-            width: cardWidth,
-            child: SummaryCard(
-              title: 'Monthly Expense',
-              amount: '\$${totalExpense.toStringAsFixed(2)}',
-              icon: Icons.trending_down,
-              iconColor: AppColors.warning,
-              amountColor: AppColors.warning,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          SizedBox(
-            width: cardWidth,
-            child: SummaryCard(
-              title: 'Remaining Budget',
-              amount: '\$${remainingBudget.toStringAsFixed(2)}',
-              icon: Icons.savings,
-              iconColor: remainingBudget >= 0
-                  ? AppColors.secondary
-                  : AppColors.warning,
-              amountColor: remainingBudget >= 0
-                  ? AppColors.secondary
-                  : AppColors.warning,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildWebContentLayout({
-    required List<Transaction> recentTransactions,
-    required double monthlyBudget,
+  Widget _buildQuickAction({
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
   }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 2,
-          child: CustomCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Recent Transactions',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(
-                          context,
-                        ).pushNamed(AppRoutes.transactionHistory);
-                      },
-                      child: const Text('View All'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                if (recentTransactions.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(AppSpacing.xl),
-                    child: Center(
-                      child: Text(
-                        'No transactions yet',
-                        style: TextStyle(color: AppColors.textSecondary),
-                      ),
-                    ),
-                  )
-                else
-                  ...recentTransactions.map(
-                    (transaction) => TransactionItem(transaction: transaction),
-                  ),
-              ],
-            ),
+    return CustomCard(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: AppColors.secondary, size: 32),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            children: [
-              CustomCard(
-                onTap: () {
-                  Navigator.of(context).pushNamed(AppRoutes.budget);
-                },
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.savings,
-                      size: 48,
-                      color: AppColors.secondary,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    const Text(
-                      'Budget',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      '\$${monthlyBudget.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.secondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              CustomCard(
-                onTap: () {
-                  Navigator.of(context).pushNamed(AppRoutes.reports);
-                },
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.analytics,
-                      size: 48,
-                      color: AppColors.secondary,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    const Text(
-                      'Reports',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMobileContentLayout(
-    BuildContext context, {
-    required List<Transaction> recentTransactions,
-    required double monthlyBudget,
-  }) {
-    return Column(
-      children: [
-        // Quick actions
-        Row(
-          children: [
-            Expanded(
-              child: CustomCard(
-                onTap: () {
-                  Navigator.of(context).pushNamed(AppRoutes.budget);
-                },
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.savings,
-                      size: 32,
-                      color: AppColors.secondary,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    const Text(
-                      'Budget',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: CustomCard(
-                onTap: () {
-                  Navigator.of(context).pushNamed(AppRoutes.reports);
-                },
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.analytics,
-                      size: 32,
-                      color: AppColors.secondary,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    const Text(
-                      'Reports',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: CustomCard(
-                onTap: () {
-                  Navigator.of(context).pushNamed(AppRoutes.categories);
-                },
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.category,
-                      size: 32,
-                      color: AppColors.secondary,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    const Text(
-                      'Categories',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.lg),
-
-        // Recent transactions
-        CustomCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Recent Transactions',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(
-                        context,
-                      ).pushNamed(AppRoutes.transactionHistory);
-                    },
-                    child: const Text('View All'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              if (recentTransactions.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(AppSpacing.xl),
-                  child: Center(
-                    child: Text(
-                      'No transactions yet',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  ),
-                )
-              else
-                ...recentTransactions.map(
-                  (transaction) => TransactionItem(transaction: transaction),
-                ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
