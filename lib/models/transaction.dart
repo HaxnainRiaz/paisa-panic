@@ -5,6 +5,7 @@ class Transaction {
   final TransactionType type;
   final String category;
   final DateTime date;
+  final String currency;
   final String? note;
   final String? source; // For income transactions
 
@@ -14,6 +15,7 @@ class Transaction {
     required this.type,
     required this.category,
     required this.date,
+    this.currency = 'PKR',
     this.note,
     this.source,
   });

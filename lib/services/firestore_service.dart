@@ -17,7 +17,7 @@ class FirestoreService {
           id: userId,
           name: data['name'] ?? '',
           email: data['email'] ?? '',
-          currency: data['currency'] ?? 'USD',
+          currency: data['currency'] ?? 'PKR',
           monthlyBudget: (data['budget']?['amount'] ?? 0).toDouble(),
         );
       }
@@ -80,6 +80,7 @@ class FirestoreService {
                   : app_models.TransactionType.expense,
               category: data['category'] ?? '',
               date: (data['date'] as Timestamp).toDate(),
+              currency: data['currency'] ?? 'USD',
               note: data['note'],
               source: data['source'],
             );
@@ -102,6 +103,7 @@ class FirestoreService {
               : 'expense',
           'category': transaction.category,
           'date': Timestamp.fromDate(transaction.date),
+          'currency': transaction.currency,
           'note': transaction.note,
           'source': transaction.source,
           'createdAt': FieldValue.serverTimestamp(),

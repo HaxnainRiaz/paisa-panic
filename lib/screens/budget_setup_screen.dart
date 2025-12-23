@@ -7,6 +7,8 @@ import '../services/firestore_service.dart';
 import '../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import '../routes/app_routes.dart';
+import '../helpers/currency_helper.dart';
+import '../providers/finance_provider.dart';
 
 /// Guided budget setup screen for new users
 class BudgetSetupScreen extends StatefulWidget {
@@ -21,6 +23,8 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
   final _amountController = TextEditingController();
   int _currentStep = 0;
   String _selectedPeriod = 'monthly';
+  String _selectedCurrency = 'PKR';
+  final List<String> _currencies = ['PKR', 'USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD'];
   double _totalBudget = 0;
   final Map<String, double> _categoryAllocations = {};
   final FirestoreService _firestoreService = FirestoreService();
@@ -77,6 +81,10 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
         categoryAllocations: _categoryAllocations,
       );
 
+      // Save Currency via Provider to sync local state
+      await Provider.of<FinanceProvider>(context, listen: false)
+          .setCurrency(authProvider.user!.uid, _selectedCurrency);
+
       await authProvider.hasBudgetSetup();
 
       if (mounted) {
@@ -103,7 +111,7 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             children: [
@@ -128,16 +136,15 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
               ),
               const SizedBox(height: AppSpacing.xl),
 
-              SizedBox(
-                height: 400,
+              Expanded(
                 child: PageView(
                   controller: _pageController,
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
-                    _buildStep1(),
-                    _buildStep2(),
+                    SingleChildScrollView(child: _buildStepAmountAndCurrency()), // Step 1: Amount & Currency
+                    SingleChildScrollView(child: _buildStepPeriod()), // Step 2: Period
                     _buildStep3(),
-                    _buildStep4(),
+                    SingleChildScrollView(child: _buildStepReview()),
                   ],
                 ),
               ),
@@ -150,7 +157,7 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
                   if (_currentStep > 0)
                     Expanded(
                       child: CustomButton(
-                        text: 'Previous',
+                        text: 'Back',
                         onPressed: _previousStep,
                         isOutlined: true,
                       ),
@@ -158,7 +165,7 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
                   if (_currentStep > 0) const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: CustomButton(
-                      text: _currentStep == 3 ? 'Complete Setup' : 'Next',
+                      text: _currentStep == 3 ? 'Finish' : 'Next',
                       onPressed: _currentStep == 3 ? _completeSetup : _nextStep,
                     ),
                   ),
@@ -168,10 +175,11 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
           ),
         ),
       ),
+
     );
   }
 
-  Widget _buildStep1() {
+  Widget _buildStepPeriod() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -184,7 +192,7 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
           'Choose how often you want to track your budget',
           style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         CustomCard(
           onTap: () {
             setState(() {
@@ -213,21 +221,13 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Track your budget on a monthly basis',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
                   ],
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         CustomCard(
           onTap: () {
             setState(() {
@@ -256,14 +256,6 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Track your budget on a weekly basis',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -274,20 +266,33 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
     );
   }
 
-  Widget _buildStep2() {
+  Widget _buildStepAmountAndCurrency() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Enter Total Budget',
+          'Total Budget & Currency',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
-          'How much do you want to budget for ${_selectedPeriod == 'monthly' ? 'this month' : 'this week'}?',
+          'Select your currency and budget limit.',
           style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
+        DropdownButtonFormField<String>(
+          value: _selectedCurrency,
+          decoration: const InputDecoration(
+            labelText: 'Currency',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.currency_exchange),
+          ),
+          items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+          onChanged: (val) {
+            if (val != null) setState(() => _selectedCurrency = val);
+          },
+        ),
+        const SizedBox(height: AppSpacing.md),
         CustomTextField(
           label: 'Budget Amount',
           hint: '0.00',
@@ -295,13 +300,8 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           prefixIcon: Icons.attach_money,
           validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter a budget amount';
-            }
-            final amount = double.tryParse(value);
-            if (amount == null || amount <= 0) {
-              return 'Please enter a valid amount';
-            }
+            if (value == null || value.isEmpty) return 'Enter amount';
+            if (double.tryParse(value) == null) return 'Invalid amount';
             return null;
           },
         ),
@@ -345,30 +345,31 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
             itemBuilder: (context, index) {
               final category = categories[index];
               final allocated = _categoryAllocations[category] ?? 0.0;
-              return CustomCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          category,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          '\$${allocated.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.secondary,
-                          ),
-                        ),
-                      ],
-                    ),
+                        final symbol = CurrencyHelper.getSymbol(_selectedCurrency);
+                        return CustomCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    category,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    '$symbol${allocated.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.secondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
                     const SizedBox(height: 8),
                     TextField(
                       keyboardType: const TextInputType.numberWithOptions(
@@ -382,8 +383,12 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
                         ),
                       ),
                       onChanged: (value) {
-                        final amount = double.tryParse(value) ?? 0.0;
-                        setState(() {
+                         final amount = double.tryParse(value) ?? 0.0;
+                         // symbol unused here but was defined previously? I'll remove it if unused to avoid warning, or keep it.
+                         // The user code had `final symbol = ...`. I'll keep it or ignore.
+                         // Actually I can just use amount.
+                        
+                         setState(() {
                           _categoryAllocations[category] = amount;
                         });
                       },
@@ -398,7 +403,7 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
     );
   }
 
-  Widget _buildStep4() {
+  Widget _buildStepReview() {
     if (_amountController.text.isNotEmpty) {
       _totalBudget = double.tryParse(_amountController.text) ?? 0;
     }
@@ -427,7 +432,7 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
               const Divider(),
               _buildSummaryRow(
                 'Total Budget',
-                '\$${_totalBudget.toStringAsFixed(2)}',
+                '${CurrencyHelper.getSymbol(_selectedCurrency)}${_totalBudget.toStringAsFixed(2)}',
               ),
               if (_categoryAllocations.isNotEmpty) ...[
                 const Divider(),
@@ -444,7 +449,7 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(entry.key),
-                          Text('\$${entry.value.toStringAsFixed(2)}'),
+                          Text('${CurrencyHelper.getSymbol(_selectedCurrency)}${entry.value.toStringAsFixed(2)}'),
                         ],
                       ),
                     );

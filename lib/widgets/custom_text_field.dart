@@ -11,6 +11,7 @@ class CustomTextField extends StatelessWidget {
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
   final IconData? prefixIcon;
+  final String? prefixText;
   final IconData? suffixIcon;
   final VoidCallback? onSuffixTap;
   final int? maxLines;
@@ -27,6 +28,7 @@ class CustomTextField extends StatelessWidget {
     this.validator,
     this.onChanged,
     this.prefixIcon,
+    this.prefixText,
     this.suffixIcon,
     this.onSuffixTap,
     this.maxLines = 1,
@@ -60,7 +62,18 @@ class CustomTextField extends StatelessWidget {
           enabled: enabled,
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+            prefixIcon: prefixIcon != null 
+                ? Icon(prefixIcon) 
+                : (prefixText != null 
+                    ? Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          prefixText!,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      )
+                    : null),
+            prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
             suffixIcon: suffixIcon != null
                 ? IconButton(
                     icon: Icon(suffixIcon),

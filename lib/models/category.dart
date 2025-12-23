@@ -39,6 +39,17 @@ class Category {
       isCustom: map['isCustom'] == true,
     );
   }
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Category &&
+        other.id == id &&
+        other.name == name &&
+        other.type == type;
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, type);
 }
 
 /// Mock categories data

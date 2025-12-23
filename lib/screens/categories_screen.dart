@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../theme/theme.dart';
+import '../routes/app_routes.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/custom_card.dart';
 import '../models/category.dart';
 import '../models/transaction.dart';
@@ -172,45 +174,96 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   void _addCategory(bool isIncome) {
     final nameController = TextEditingController();
+    // Using a ValueNotifier for loading state inside the dialog
+    final isLoading = ValueNotifier<bool>(false);
+    final errorText = ValueNotifier<String?>(null);
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Add ${isIncome ? 'Income' : 'Expense'} Category'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Category Name',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.isEmpty) return;
-              final auth = Provider.of<AuthProvider>(context, listen: false);
-              if (auth.user == null) return;
+      builder: (context) => ValueListenableBuilder<bool>(
+        valueListenable: isLoading,
+        builder: (context, loading, _) {
+          return AlertDialog(
+            title: Text('Add ${isIncome ? 'Income' : 'Expense'} Category'),
+            content: ValueListenableBuilder<String?>(
+              valueListenable: errorText,
+              builder: (context, error, _) {
+                return TextField(
+                  controller: nameController,
+                  enabled: !loading,
+                  decoration: InputDecoration(
+                    labelText: 'Category Name',
+                    border: const OutlineInputBorder(),
+                    errorText: error,
+                  ),
+                );
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: loading ? null : () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: loading
+                    ? null
+                    : () async {
+                        final name = nameController.text.trim();
+                        if (name.isEmpty) return;
 
-              final newCat = Category(
-                id: '', // Firestore will generate
-                name: nameController.text,
-                type: isIncome
-                    ? TransactionType.income
-                    : TransactionType.expense,
-                icon: isIncome ? 'attach_money' : 'money_off', // fixed icon
-                isCustom: true,
-              );
+                        // Validation: Check duplicates
+                        // We need to access the current categories to check
+                        // For now, we will assume the caller needs to provide this or we read from provider/stream if possible.
+                        // But since we are inside a stream builder in the parent, we don't have direct access to the list here easily unless passed.
+                        // However, we can just query firestore or safer: just proceed and let the user handle it, but the user asked for validation.
+                        // Best way: check against _defaultIncome/_defaultExpense + custom ones if available.
+                        // Since this method is inside the class, we can't easily access the stream data from the build method unless we store it in a state variable.
+                        // Modification: I will read the stream once to check or better, assume uniqueness is enforced by logic.
+                        // Let's implement a quick check by reading the current categories from Firestore again or checking if we can pass them.
+                        // To keep it simple and robust:
+                        
+                        isLoading.value = true;
+                        errorText.value = null;
 
-              await _firestore.addCategory(auth.user!.uid, newCat);
-              Navigator.pop(context);
-            },
-            child: const Text('Add'),
-          ),
-        ],
+                        final auth = Provider.of<AuthProvider>(context, listen: false);
+                        if (auth.user == null) return;
+
+                        // Check duplicates
+                        final currentDocs = await _firestore.userCategoriesStream(auth.user!.uid).first;
+                        final exists = currentDocs.any((c) => 
+                          c.type == (isIncome ? TransactionType.income : TransactionType.expense) && 
+                          c.name.toLowerCase() == name.toLowerCase()
+                        );
+                         // Also check defaults
+                        final defaults = isIncome ? _defaultIncome : _defaultExpense;
+                        final defaultExists = defaults.any((c) => c.name.toLowerCase() == name.toLowerCase());
+
+                        if (exists || defaultExists) {
+                           errorText.value = 'Category already exists';
+                           isLoading.value = false;
+                           return;
+                        }
+
+                        final newCat = Category(
+                          id: '', // Firestore will generate
+                          name: name,
+                          type: isIncome
+                              ? TransactionType.income
+                              : TransactionType.expense,
+                          icon: isIncome ? 'attach_money' : 'money_off',
+                          isCustom: true,
+                        );
+
+                        await _firestore.addCategory(auth.user!.uid, newCat);
+                        if (context.mounted) Navigator.pop(context);
+                      },
+                child: loading 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) 
+                  : const Text('Add'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -359,9 +412,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Categories')),
+    return AppScaffold(
+      title: 'Categories',
+      currentRoute: AppRoutes.categories,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Consumer<AuthProvider>(

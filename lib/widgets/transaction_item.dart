@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
 import '../models/transaction.dart';
+import 'package:provider/provider.dart';
 import '../theme/theme.dart';
+import '../helpers/currency_helper.dart';
+import '../providers/finance_provider.dart';
 
 /// Transaction list item widget
 class TransactionItem extends StatelessWidget {
   final Transaction transaction;
   final VoidCallback? onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
-  const TransactionItem({super.key, required this.transaction, this.onTap});
+  const TransactionItem({
+    super.key, 
+    required this.transaction, 
+    this.onTap,
+    this.onEdit,
+    this.onDelete,
+  });
 
-  String _formatCurrency(double amount) {
-    return '\$${amount.toStringAsFixed(2)}';
+  String _formatCurrency(double amount, String symbol) {
+    return '$symbol${amount.toStringAsFixed(2)}';
   }
 
   String _formatDate(DateTime date) {
@@ -89,6 +100,9 @@ class TransactionItem extends StatelessWidget {
     final isIncome = transaction.type == TransactionType.income;
     final amountColor = isIncome ? AppColors.secondary : AppColors.warning;
     final amountPrefix = isIncome ? '+' : '-';
+
+    final finance = Provider.of<FinanceProvider>(context);
+    final symbol = CurrencyHelper.getSymbol(finance.selectedCurrency);
 
     return InkWell(
       onTap: onTap,
@@ -170,13 +184,45 @@ class TransactionItem extends StatelessWidget {
               ),
             ),
             Text(
-              '$amountPrefix${_formatCurrency(transaction.amount)}',
+              '$amountPrefix${_formatCurrency(transaction.amount, symbol)}',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16, // Reduced slightly to fit currency code
                 fontWeight: FontWeight.bold,
                 color: amountColor,
               ),
             ),
+            if (onEdit != null || onDelete != null)
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, size: 20, color: AppColors.textSecondary),
+                onSelected: (value) {
+                  if (value == 'edit' && onEdit != null) onEdit!();
+                  if (value == 'delete' && onDelete != null) onDelete!();
+                },
+                itemBuilder: (context) => [
+                  if (onEdit != null)
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 18),
+                          SizedBox(width: 8),
+                          Text('Edit'),
+                        ],
+                      ),
+                    ),
+                  if (onDelete != null)
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 18, color: AppColors.warning),
+                          SizedBox(width: 8),
+                          Text('Delete', style: TextStyle(color: AppColors.warning)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
           ],
         ),
       ),

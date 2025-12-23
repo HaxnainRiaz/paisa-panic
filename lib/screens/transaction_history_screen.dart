@@ -5,8 +5,10 @@ import '../widgets/transaction_item.dart';
 import '../widgets/app_scaffold.dart';
 import '../models/transaction.dart' as app_models;
 import '../providers/auth_provider.dart';
+import '../providers/finance_provider.dart';
 import '../services/firestore_service.dart';
 import '../routes/app_routes.dart';
+import 'add_transaction_screen.dart';
 
 /// Transaction history screen with filters and sorting
 class TransactionHistoryScreen extends StatefulWidget {
@@ -50,9 +52,17 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
+      isScrollControlled: true, // Allow it to take more height if needed
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
+        child: SingleChildScrollView(
+          controller: scrollController,
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -64,11 +74,12 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            const Text('Type'),
-            Row(
+            const Text('Type', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            // Use Column instead of Row to prevent squeezing
+            Column(
               children: [
-                Expanded(
-                  child: RadioListTile<app_models.TransactionType?>(
+                RadioListTile<app_models.TransactionType?>(
                     title: const Text('All'),
                     value: null,
                     groupValue: _selectedType,
@@ -79,10 +90,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       });
                       Navigator.pop(context);
                     },
+                    contentPadding: EdgeInsets.zero,
                   ),
-                ),
-                Expanded(
-                  child: RadioListTile<app_models.TransactionType?>(
+                RadioListTile<app_models.TransactionType?>(
                     title: const Text('Income'),
                     value: app_models.TransactionType.income,
                     groupValue: _selectedType,
@@ -93,10 +103,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       });
                       Navigator.pop(context);
                     },
+                    contentPadding: EdgeInsets.zero,
                   ),
-                ),
-                Expanded(
-                  child: RadioListTile<app_models.TransactionType?>(
+                RadioListTile<app_models.TransactionType?>(
                     title: const Text('Expense'),
                     value: app_models.TransactionType.expense,
                     groupValue: _selectedType,
@@ -107,12 +116,13 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       });
                       Navigator.pop(context);
                     },
+                    contentPadding: EdgeInsets.zero,
                   ),
-                ),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            const Text('Sort By'),
+            const Text('Sort By', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
             RadioListTile<String>(
               title: const Text('Date'),
               value: 'date',
@@ -124,6 +134,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                 _applyFilters();
                 Navigator.pop(context);
               },
+              contentPadding: EdgeInsets.zero,
             ),
             RadioListTile<String>(
               title: const Text('Amount'),
@@ -136,8 +147,12 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                 _applyFilters();
                 Navigator.pop(context);
               },
+              contentPadding: EdgeInsets.zero,
             ),
+            const SizedBox(height: 24), // Extra bottom padding
           ],
+          ),
+        ),
         ),
       ),
     );
@@ -213,6 +228,40 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             itemBuilder: (context, index) {
               return TransactionItem(
                 transaction: _filteredTransactions[index],
+                onEdit: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddTransactionScreen(
+                        type: _filteredTransactions[index].type,
+                        transactionToEdit: _filteredTransactions[index],
+                      ),
+                    ),
+                  );
+                },
+                onDelete: () {
+                   showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Delete Transaction'),
+                      content: const Text('Are you sure you want to delete this transaction?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            await Provider.of<FinanceProvider>(context, listen: false)
+                                .deleteTransaction(userId, _filteredTransactions[index].id);
+                          },
+                          child: const Text('Delete', style: TextStyle(color: AppColors.warning)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               );
             },
           );

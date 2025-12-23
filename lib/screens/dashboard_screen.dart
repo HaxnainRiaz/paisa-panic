@@ -8,6 +8,10 @@ import '../models/transaction.dart';
 import '../providers/auth_provider.dart';
 import '../services/firestore_service.dart';
 import '../routes/app_routes.dart';
+import '../providers/finance_provider.dart';
+import 'add_transaction_screen.dart';
+
+import '../helpers/currency_helper.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -113,40 +117,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     mainAxisAlignment:
                         MainAxisAlignment.center, // centers buttons
                     children: [
-                      Flexible(
-                        flex: 1,
-                        child: _buildQuickAction(
-                          title: 'Budget',
-                          icon: Icons.savings,
-                          onTap: () {
-                            Navigator.of(context).pushNamed(AppRoutes.budget);
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8), // smaller space between buttons
-                      Flexible(
-                        flex: 1,
-                        child: _buildQuickAction(
-                          title: 'Reports',
-                          icon: Icons.analytics,
-                          onTap: () {
-                            Navigator.of(context).pushNamed(AppRoutes.reports);
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        flex: 1,
-                        child: _buildQuickAction(
-                          title: 'Categories',
-                          icon: Icons.category,
-                          onTap: () {
-                            Navigator.of(
-                              context,
-                            ).pushNamed(AppRoutes.categories);
-                          },
-                        ),
-                      ),
+                  Flexible(
+                    flex: 1,
+                    child: _buildQuickAction(
+                      title: 'Budget',
+                      icon: Icons.savings,
+                      onTap: () {
+                        Navigator.of(context).pushNamed(AppRoutes.budget);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 4), // Reduced spacing
+                  Flexible(
+                    flex: 1,
+                    child: _buildQuickAction(
+                      title: 'Reports',
+                      icon: Icons.analytics,
+                      onTap: () {
+                        Navigator.of(context).pushNamed(AppRoutes.reports);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    flex: 1,
+                    child: _buildQuickAction(
+                      title: 'Categories',
+                      icon: Icons.category,
+                      onTap: () {
+                        Navigator.of(
+                          context,
+                        ).pushNamed(AppRoutes.categories);
+                      },
+                    ),
+                  ),
                     ],
                   ),
 
@@ -183,7 +187,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   else
                     Column(
                       children: recentTransactions
-                          .map((t) => TransactionItem(transaction: t))
+                          .map((t) => TransactionItem(
+                                transaction: t,
+                                onEdit: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => AddTransactionScreen(
+                                        type: t.type,
+                                        transactionToEdit: t,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                onDelete: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Delete Transaction'),
+                                      content: const Text('Are you sure you want to delete this transaction?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () async {
+                                            Navigator.pop(ctx);
+                                            await Provider.of<FinanceProvider>(context, listen: false)
+                                                .deleteTransaction(userId, t.id);
+                                          },
+                                          child: const Text('Delete', style: TextStyle(color: AppColors.warning)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ))
                           .toList(),
                     ),
                   const SizedBox(height: AppSpacing.lg),
@@ -202,30 +242,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required IconData icon,
     required Color color,
   }) {
+    // Get currency symbol from provider
+    final finance = Provider.of<FinanceProvider>(context);
+    final symbol = CurrencyHelper.getSymbol(finance.selectedCurrency);
+
     return Padding(
       padding: const EdgeInsets.only(right: AppSpacing.md),
       child: SizedBox(
-        width: 160,
+        width: 170, // Increased width slightly
         child: CustomCard(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center, // Icon center
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, color: color, size: 28),
               const SizedBox(height: AppSpacing.sm),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                '\$${amount.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+              // Text and Amount Left Aligned inside a container/column
+              SizedBox(
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 12, // Smaller font as requested
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$symbol${amount.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -242,17 +297,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }) {
     return CustomCard(
       onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: AppColors.secondary, size: 32),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-        ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2), // Reduced padding
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: AppColors.secondary, size: 24), // Reduced icon size
+            const SizedBox(height: 4),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.visible, // User said "hided the text... i dont want this". Visible means no ellipsis? But might overflow. Use `fittedBox`?
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600), // Reduced font
+            ),
+          ],
+        ),
       ),
     );
   }

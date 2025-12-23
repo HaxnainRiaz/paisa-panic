@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../helpers/currency_helper.dart';
 import '../models/category.dart';
 import '../models/transaction.dart' as app_models;
 import '../providers/auth_provider.dart';
+import '../providers/finance_provider.dart';
 import '../services/firestore_service.dart';
 import '../routes/app_routes.dart';
 import '../widgets/app_scaffold.dart';
@@ -14,8 +16,13 @@ import '../widgets/custom_text_field.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final app_models.TransactionType type;
+  final app_models.Transaction? transactionToEdit;
 
-  const AddTransactionScreen({super.key, required this.type});
+  const AddTransactionScreen({
+    super.key, 
+    required this.type,
+    this.transactionToEdit,
+  });
 
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -32,6 +39,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   DateTime _selectedDate = DateTime.now();
 
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.transactionToEdit != null) {
+      _amountController.text = widget.transactionToEdit!.amount.toString();
+      _noteController.text = widget.transactionToEdit!.note ?? '';
+      _selectedDate = widget.transactionToEdit!.date;
+      // Category will be selected when list loads if names match
+    }
+  }
 
   StreamSubscription<List<Category>>? _categoriesSub;
 
@@ -64,6 +82,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           if (mounted) {
             setState(() {
               _categories = map.values.toList();
+              
+              if (widget.transactionToEdit != null && _selectedCategory == null) {
+                 try {
+                   _selectedCategory = _categories.firstWhere((c) => c.name == widget.transactionToEdit!.category);
+                 } catch (_) {
+                   // Category might have been deleted or renamed; keep null or pick first
+                 }
+              }
+
               if (_categories.isNotEmpty && _selectedCategory == null) {
                 _selectedCategory = _categories.first;
               }
@@ -95,17 +122,26 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
     setState(() => _isLoading = true);
 
+    // Get currency: if editing, keep original; else use selected global currency
+    final financeProvider = Provider.of<FinanceProvider>(context, listen: false);
+    final currency = widget.transactionToEdit?.currency ?? financeProvider.selectedCurrency;
+
     try {
       final transaction = app_models.Transaction(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: widget.transactionToEdit?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         amount: double.parse(_amountController.text),
         type: widget.type,
         category: _selectedCategory!.name,
         date: _selectedDate,
+        currency: currency,
         note: _noteController.text.isEmpty ? null : _noteController.text,
       );
 
-      await _firestoreService.addTransaction(auth.user!.uid, transaction);
+      if (widget.transactionToEdit != null) {
+        await financeProvider.updateTransaction(auth.user!.uid, transaction);
+      } else {
+        await _firestoreService.addTransaction(auth.user!.uid, transaction);
+      }
 
       if (!mounted) return;
 
@@ -113,9 +149,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            widget.type == app_models.TransactionType.income
-                ? 'Income added'
-                : 'Expense added',
+            widget.transactionToEdit != null 
+                ? 'Transaction updated'
+                : (widget.type == app_models.TransactionType.income
+                    ? 'Income added'
+                    : 'Expense added'),
           ),
         ),
       );
@@ -140,9 +178,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     final isIncome = widget.type == app_models.TransactionType.income;
+    final financeProvider = Provider.of<FinanceProvider>(context);
+    final currencySymbol = CurrencyHelper.getSymbol(financeProvider.selectedCurrency);
 
     return AppScaffold(
-      title: isIncome ? 'Add Income' : 'Add Expense',
+      title: widget.transactionToEdit != null 
+          ? 'Edit Transaction' 
+          : (isIncome ? 'Add Income' : 'Add Expense'),
       currentRoute: isIncome ? AppRoutes.addIncome : AppRoutes.addExpense,
       showBottomNav: false,
       body: Padding(
@@ -154,6 +196,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               CustomTextField(
                 label: 'Amount',
                 controller: _amountController,
+                prefixText: currencySymbol,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -213,7 +256,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 24),
 
               CustomButton(
-                text: isIncome ? 'Save Income' : 'Save Expense',
+                text: widget.transactionToEdit != null 
+                    ? 'Update Transaction' 
+                    : (isIncome ? 'Save Income' : 'Save Expense'),
                 isLoading: _isLoading,
                 onPressed: _isLoading ? null : _saveTransaction,
               ),

@@ -9,6 +9,8 @@ import '../services/firestore_service.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/app_scaffold.dart';
 import '../routes/app_routes.dart';
+import '../helpers/currency_helper.dart';
+import '../providers/finance_provider.dart';
 
 /// Budget screen with monthly budget setting and progress tracking
 class BudgetScreen extends StatefulWidget {
@@ -21,6 +23,8 @@ class BudgetScreen extends StatefulWidget {
 class _BudgetScreenState extends State<BudgetScreen> {
   final _budgetController = TextEditingController();
   double _monthlyBudget = 0.0;
+  String _budgetPeriod = 'monthly';
+  Map<String, double> _categoryAllocations = {};
   final FirestoreService _firestoreService = FirestoreService();
   bool _budgetLoaded = false;
   bool _isEditing = false;
@@ -44,6 +48,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
               if (mounted) {
                 setState(() {
                   _monthlyBudget = (b?['amount'] ?? _monthlyBudget).toDouble();
+                  _budgetPeriod = b?['period'] ?? 'monthly';
+                  _categoryAllocations = (b?['categoryAllocations'] as Map<String, dynamic>?)
+                          ?.map((k, v) => MapEntry(k, (v as num).toDouble())) ??
+                      {};
                   _budgetLoaded = true;
                 });
               }
@@ -61,19 +69,37 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
   // total expenses computed from Firestore stream in build
 
-  void _handleSaveBudget() {
+  Future<void> _handleSaveBudget() async {
     final newBudget = double.tryParse(_budgetController.text);
     if (newBudget != null && newBudget > 0) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.user == null) return;
+
       setState(() {
         _monthlyBudget = newBudget;
         _isEditing = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Budget updated successfully!'),
-          backgroundColor: AppColors.secondary,
-        ),
-      );
+
+      try {
+        await _firestoreService.setBudget(
+          authProvider.user!.uid,
+          amount: newBudget,
+          period: _budgetPeriod,
+          categoryAllocations: _categoryAllocations,
+        );
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Budget updated successfully!'),
+            backgroundColor: AppColors.secondary,
+          ),
+        );
+      } catch (e) {
+        // revert on error if needed, or show error
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Error updating budget: $e')),
+        );
+      }
     }
   }
 
@@ -111,6 +137,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
             ? (totalExpenses / _monthlyBudget)
             : 0.0;
         final isOverBudget = remainingBudget < 0;
+        
+        final finance = Provider.of<FinanceProvider>(context);
+        final currencySymbol = CurrencyHelper.getSymbol(finance.selectedCurrency);
 
         return AppScaffold(
           title: 'Budget',
@@ -129,7 +158,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Monthly Budget',
+                            'Budget',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -152,7 +181,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       const SizedBox(height: AppSpacing.lg),
                       if (_isEditing) ...[
                         CustomTextField(
-                          label: 'Monthly Budget',
+                          label: 'Budget Limit',
                           hint: '0.00',
                           controller: _budgetController,
                           keyboardType: const TextInputType.numberWithOptions(
@@ -161,19 +190,84 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           prefixIcon: Icons.attach_money,
                         ),
                         const SizedBox(height: AppSpacing.md),
+                        if (_categoryAllocations.isNotEmpty) ...[
+                          const Text('Category Allocations', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          ..._categoryAllocations.entries.map((entry) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  Expanded(child: Text(entry.key)),
+                                  SizedBox(
+                                    width: 100,
+                                    child: TextFormField(
+                                      initialValue: entry.value.toString(),
+                                      keyboardType: TextInputType.number,
+                                      decoration: const InputDecoration(
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.all(8),
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _categoryAllocations[entry.key] = double.tryParse(val) ?? 0;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                        const SizedBox(height: AppSpacing.md),
+                        DropdownButtonFormField<String>(
+                          value: _budgetPeriod,
+                          decoration: const InputDecoration(
+                            labelText: 'Budget Period',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.calendar_today),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+                            DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setState(() => _budgetPeriod = val);
+                          },
+                        ),
+                        const SizedBox(height: AppSpacing.md),
                         CustomButton(
                           text: 'Save Budget',
                           onPressed: _handleSaveBudget,
                         ),
                       ] else ...[
                         Text(
-                          '\$${_monthlyBudget.toStringAsFixed(2)}',
+                          '$currencySymbol${_monthlyBudget.toStringAsFixed(2)} / ${_budgetPeriod == 'monthly' ? 'Month' : 'Week'}',
                           style: const TextStyle(
                             fontSize: 36,
                             fontWeight: FontWeight.bold,
                             color: AppColors.secondary,
                           ),
                         ),
+                        if (_categoryAllocations.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          const Divider(),
+                          const Text('Allocations:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ..._categoryAllocations.entries.where((e) => e.value > 0).map((e) => 
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(e.key),
+                                  Text('$currencySymbol${e.value.toStringAsFixed(2)}'),
+                                ],
+                              ),
+                            )
+                          ),
+                        ],
                       ],
                     ],
                   ),
@@ -247,7 +341,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                 ),
                               ),
                               Text(
-                                '\$${totalExpenses.toStringAsFixed(2)}',
+                                '$currencySymbol${totalExpenses.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -267,7 +361,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                 ),
                               ),
                               Text(
-                                '\$${remainingBudget.abs().toStringAsFixed(2)}',
+                                '$currencySymbol${remainingBudget.abs().toStringAsFixed(2)}',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -311,7 +405,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'You have exceeded your monthly budget by \$${remainingBudget.abs().toStringAsFixed(2)}',
+                                'You have exceeded your monthly budget by $currencySymbol${remainingBudget.abs().toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: AppColors.textPrimary,

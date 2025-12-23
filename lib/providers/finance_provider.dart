@@ -11,9 +11,11 @@ class FinanceProvider with ChangeNotifier {
   FinanceProvider({dynamic firestoreService})
     : _firestoreService = firestoreService ?? FirestoreService();
 
+  String _selectedCurrency = 'PKR';
   StreamSubscription<List<Transaction>>? _sub;
   List<Transaction> _transactions = [];
 
+  String get selectedCurrency => _selectedCurrency;
   List<Transaction> get transactions => List.unmodifiable(_transactions);
   List<Transaction> get recentTransactions => _transactions.take(5).toList();
 
@@ -34,6 +36,14 @@ class FinanceProvider with ChangeNotifier {
     notifyListeners();
 
     if (userId == null) return;
+    
+    // Load user profile to get currency
+    _firestoreService.getUserProfile(userId).then((user) {
+      if (user != null) {
+        _selectedCurrency = user.currency;
+        notifyListeners();
+      }
+    });
 
     _sub = _firestoreService
         .getTransactions(userId)
@@ -65,6 +75,44 @@ class FinanceProvider with ChangeNotifier {
           .toList();
       notifyListeners();
       rethrow;
+    }
+  }
+
+  Future<void> updateTransaction(String userId, Transaction transaction) async {
+    final index = _transactions.indexWhere((t) => t.id == transaction.id);
+    if (index != -1) {
+      _transactions[index] = transaction;
+      notifyListeners();
+    }
+
+    try {
+      await _firestoreService.updateTransaction(userId, transaction);
+    } catch (e) {
+      // Revert/Reload if needed, simplified here
+      debugPrint('Error updating transaction: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteTransaction(String userId, String transactionId) async {
+    _transactions.removeWhere((t) => t.id == transactionId);
+    notifyListeners();
+
+    try {
+      await _firestoreService.deleteTransaction(userId, transactionId);
+    } catch (e) {
+      debugPrint('Error deleting transaction: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> setCurrency(String userId, String currency) async {
+    _selectedCurrency = currency;
+    notifyListeners();
+    try {
+      await _firestoreService.updateUserProfile(userId, {'currency': currency});
+    } catch (e) {
+      debugPrint('Error updating currency: $e');
     }
   }
 

@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/theme.dart';
 import '../widgets/custom_card.dart';
+import '../widgets/app_scaffold.dart';
+import '../routes/app_routes.dart';
 import '../models/transaction.dart';
 import '../providers/auth_provider.dart';
 import '../services/firestore_service.dart';
+import '../helpers/currency_helper.dart';
+import '../providers/finance_provider.dart';
 
 /// Reports & Analytics screen with charts and summaries
 class ReportsScreen extends StatefulWidget {
@@ -21,19 +25,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final financeProvider = Provider.of<FinanceProvider>(context);
     final userId = authProvider.user?.uid;
+    final symbol = CurrencyHelper.getSymbol(financeProvider.selectedCurrency);
 
     if (userId == null) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(title: const Text('Reports & Analytics')),
+      return AppScaffold(
+        title: 'Reports & Analytics',
+        currentRoute: AppRoutes.reports,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Reports & Analytics')),
+    return AppScaffold(
+      title: 'Reports & Analytics',
+      currentRoute: AppRoutes.reports,
       body: StreamBuilder<List<Transaction>>(
         stream: _firestoreService.getTransactions(userId),
         builder: (context, snapshot) {
@@ -127,7 +133,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '\$${totalIncome.toStringAsFixed(2)}',
+                                  '$symbol${totalIncome.toStringAsFixed(2)}',
                                   style: const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
@@ -150,7 +156,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '\$${totalExpense.toStringAsFixed(2)}',
+                                  '$symbol${totalExpense.toStringAsFixed(2)}',
                                   style: const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
@@ -180,7 +186,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               ),
                             ),
                             Text(
-                              '\$${(totalIncome - totalExpense).toStringAsFixed(2)}',
+                              '$symbol${(totalIncome - totalExpense).toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -227,7 +233,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '\$${entry.value.toStringAsFixed(2)} (${percentage.toStringAsFixed(1)}%)',
+                                    '$symbol${entry.value.toStringAsFixed(2)} (${percentage.toStringAsFixed(1)}%)',
                                     style: const TextStyle(
                                       fontSize: 14,
                                       color: AppColors.textSecondary,

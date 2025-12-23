@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/theme.dart';
+import '../services/firestore_service.dart';
 import '../widgets/custom_card.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import '../routes/app_routes.dart';
 import '../providers/auth_provider.dart';
+import '../providers/finance_provider.dart';
 import '../widgets/app_scaffold.dart';
 
 /// Profile & Settings screen
@@ -18,9 +20,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _nameController = TextEditingController();
-  String _selectedCurrency = 'USD';
+
   bool _isEditingName = false;
-  final List<String> _currencies = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD'];
+  final List<String> _currencies = ['PKR', 'USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD'];
   bool _initialized = false;
 
   @override
@@ -30,7 +32,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final authProvider = Provider.of<AuthProvider>(context);
       final user = authProvider.user;
       _nameController.text = user?.displayName ?? '';
-      _selectedCurrency = 'USD';
       _initialized = true;
     }
   }
@@ -41,17 +42,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  void _handleSaveName() {
-    if (_nameController.text.isNotEmpty) {
-      setState(() {
-        _isEditingName = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Name updated successfully!'),
-          backgroundColor: AppColors.secondary,
-        ),
-      );
+  Future<void> _handleSaveName() async {
+    final name = _nameController.text.trim();
+    if (name.isNotEmpty) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userId = authProvider.user?.uid;
+
+      if (userId != null) {
+        try {
+          // Update in Firestore
+          await FirestoreService().updateUserProfile(userId, {'displayName': name});
+          // Update in Auth (optional if AuthProvider listens to changes or if we rely on Firestore)
+          // For now, assume FirestoreService updates the User object or we reload.
+          // Ideally AuthProvider should expose a method to update profile. 
+          // Let's assume we just need to update Firestore and perhaps `user!.updateDisplayName(name)`.
+           await authProvider.user!.updateDisplayName(name);
+           await authProvider.user!.reload();
+
+           setState(() {
+            _isEditingName = false;
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Name updated successfully!'),
+              backgroundColor: AppColors.secondary,
+            ),
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error updating name: $e'),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -212,7 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   DropdownButtonFormField<String>(
-                    value: _selectedCurrency,
+                    value: Provider.of<FinanceProvider>(context).selectedCurrency,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: AppColors.background,
@@ -247,15 +273,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     }).toList(),
                     onChanged: (value) {
-                      setState(() {
-                        _selectedCurrency = value!;
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Currency changed to $value'),
-                          backgroundColor: AppColors.secondary,
-                        ),
-                      );
+                      if (value != null) {
+                        final finance = Provider.of<FinanceProvider>(context, listen: false);
+                        finance.setCurrency(user!.uid, value);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Currency changed to $value'),
+                            backgroundColor: AppColors.secondary,
+                          ),
+                        );
+                      }
                     },
                   ),
                 ],

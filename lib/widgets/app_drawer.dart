@@ -159,7 +159,11 @@ class AppDrawer extends StatelessWidget {
       selected: isSelected,
       onTap: () {
         if (currentRoute != route) {
-          Navigator.of(context).pushReplacementNamed(route);
+          if (route == AppRoutes.dashboard) {
+            Navigator.of(context).pushReplacementNamed(route);
+          } else {
+            Navigator.of(context).pushNamed(route);
+          }
         } else {
           Navigator.of(context).pop();
         }
