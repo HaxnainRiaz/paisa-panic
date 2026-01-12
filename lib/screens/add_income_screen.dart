@@ -175,7 +175,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: AppColors.secondary.withOpacity(0.1),
+                            color: AppColors.secondary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: const Icon(
@@ -224,7 +224,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                             ),
                             const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
-                              value: _selectedCategory,
+                              initialValue: _selectedCategory,
                               decoration: InputDecoration(
                                 filled: true,
                                 fillColor: AppColors.cardSurface,

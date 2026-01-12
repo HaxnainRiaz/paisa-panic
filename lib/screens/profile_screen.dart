@@ -59,24 +59,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
            await authProvider.user!.updateDisplayName(name);
            await authProvider.user!.reload();
 
-           setState(() {
-            _isEditingName = false;
-          });
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Name updated successfully!'),
-              backgroundColor: AppColors.secondary,
-            ),
-          );
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error updating name: $e'),
-              backgroundColor: AppColors.warning,
-            ),
-          );
-        }
+            if (!mounted) return;
+            setState(() {
+              _isEditingName = false;
+            });
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Name updated successfully!'),
+                backgroundColor: AppColors.secondary,
+              ),
+            );
+          } catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error updating name: $e'),
+                backgroundColor: AppColors.warning,
+              ),
+            );
+          }
       }
     }
   }
@@ -155,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: AppColors.secondary.withOpacity(0.1),
+                      color: AppColors.secondary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -238,20 +240,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   DropdownButtonFormField<String>(
-                    value: Provider.of<FinanceProvider>(context).selectedCurrency,
+                    initialValue: Provider.of<FinanceProvider>(context).selectedCurrency,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: AppColors.background,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: AppColors.textSecondary.withOpacity(0.3),
+                          color: AppColors.textSecondary.withValues(alpha: 0.3),
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: AppColors.textSecondary.withOpacity(0.3),
+                          color: AppColors.textSecondary.withValues(alpha: 0.3),
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(

@@ -302,6 +302,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               );
 
               await _firestore.updateCategory(auth.user!.uid, updated);
+              if (!context.mounted) return;
               Navigator.pop(context);
             },
             child: const Text('Save'),
@@ -329,6 +330,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               if (auth.user == null) return;
 
               await _firestore.deleteCategory(auth.user!.uid, cat.id);
+              if (!context.mounted) return;
               Navigator.pop(context);
             },
             child: const Text('Delete'),
@@ -344,7 +346,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: (isIncome ? AppColors.secondary : AppColors.warning)
-            .withOpacity(0.2),
+            .withValues(alpha: 0.2),
         child: Icon(
           icon,
           color: isIncome ? AppColors.secondary : AppColors.warning,

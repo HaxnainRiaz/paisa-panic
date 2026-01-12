@@ -172,7 +172,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       Container(
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
-                          color: AppColors.secondary.withOpacity(0.1),
+                          color: AppColors.secondary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -256,7 +256,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
                     ],
                   ),
                 ),
@@ -284,7 +284,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               Icon(
                                 Icons.bar_chart,
                                 size: 48,
-                                color: AppColors.textSecondary.withOpacity(0.5),
+                                color: AppColors.textSecondary.withValues(alpha: 0.5),
                               ),
                               const SizedBox(height: 16),
                               Text(

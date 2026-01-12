@@ -9,6 +9,7 @@ class CustomCard extends StatelessWidget {
   final Color? color;
   final VoidCallback? onTap;
   final double? elevation;
+  final Border? border;
 
   const CustomCard({
     super.key,
@@ -18,29 +19,97 @@ class CustomCard extends StatelessWidget {
     this.color,
     this.onTap,
     this.elevation,
+    this.border,
   });
 
   @override
   Widget build(BuildContext context) {
-    Widget card = Card(
-      color: color ?? AppColors.cardSurface,
-      elevation: elevation ?? 2,
-      margin: margin ?? const EdgeInsets.all(AppSpacing.md),
-      child: Padding(
-        padding: padding ?? const EdgeInsets.all(AppSpacing.lg),
-        child: child,
+    Widget card = Container(
+      margin: margin ?? const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: color ?? AppColors.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: border ?? Border.all(color: Colors.black.withValues(alpha: 0.05)),
+        boxShadow: elevation != null && elevation! > 0
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ]
+            : null,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: padding ?? const EdgeInsets.all(AppSpacing.md),
+            child: child,
+          ),
+        ),
       ),
     );
 
-    if (onTap != null) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: card,
-      );
-    }
-
     return card;
+  }
+}
+
+/// Glassmorphism Card for premium feel
+class GlassCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsets? padding;
+
+  const GlassCard({super.key, required this.child, this.padding});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary,
+            AppColors.primaryLight,
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            // Abstract decorative circles
+            Positioned(
+              right: -20,
+              top: -20,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.05),
+                ),
+              ),
+            ),
+            Padding(
+              padding: padding ?? const EdgeInsets.all(AppSpacing.lg),
+              child: child,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -64,48 +133,46 @@ class SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: (iconColor ?? AppColors.secondary).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: iconColor ?? AppColors.secondary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
                   title,
-                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: (iconColor ?? AppColors.secondary).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    amount,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: amountColor ?? AppColors.textPrimary,
+                    ),
+                  ),
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor ?? AppColors.secondary,
-                  size: 20,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              amount,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: amountColor ?? AppColors.textPrimary,
-              ),
+              ],
             ),
           ),
         ],
@@ -113,3 +180,4 @@ class SummaryCard extends StatelessWidget {
     );
   }
 }
+

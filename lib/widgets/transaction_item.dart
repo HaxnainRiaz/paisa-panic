@@ -98,7 +98,7 @@ class TransactionItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isIncome = transaction.type == TransactionType.income;
-    final amountColor = isIncome ? AppColors.secondary : AppColors.warning;
+    final amountColor = isIncome ? AppColors.secondary : AppColors.expense;
     final amountPrefix = isIncome ? '+' : '-';
 
     final finance = Provider.of<FinanceProvider>(context);
@@ -107,34 +107,19 @@ class TransactionItem extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.md,
-        ),
-        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-        decoration: BoxDecoration(
-          color: AppColors.cardSurface,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: amountColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+                color: amountColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
               ),
               child: Icon(
                 _getCategoryIcon(transaction.category),
                 color: amountColor,
-                size: 24,
+                size: 20,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -145,55 +130,43 @@ class TransactionItem extends StatelessWidget {
                   Text(
                     transaction.category,
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  if (transaction.note != null || transaction.source != null)
-                    const SizedBox(height: 4),
-                  if (transaction.note != null)
-                    Text(
-                      transaction.note!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  if (transaction.source != null)
-                    Text(
-                      transaction.source!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
-                    _formatDate(transaction.date),
+                    transaction.note ?? _formatDate(transaction.date),
                     style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                      color: AppColors.textMuted,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            Text(
-              '$amountPrefix${_formatCurrency(transaction.amount, symbol)}',
-              style: TextStyle(
-                fontSize: 16, // Reduced slightly to fit currency code
-                fontWeight: FontWeight.bold,
-                color: amountColor,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$amountPrefix${_formatCurrency(transaction.amount, symbol)}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: amountColor,
+                  ),
+                ),
+                if (onEdit != null || onDelete != null)
+                  const SizedBox(height: 4),
+              ],
             ),
             if (onEdit != null || onDelete != null)
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, size: 20, color: AppColors.textSecondary),
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textMuted),
                 onSelected: (value) {
                   if (value == 'edit' && onEdit != null) onEdit!();
                   if (value == 'delete' && onDelete != null) onDelete!();
@@ -204,9 +177,9 @@ class TransactionItem extends StatelessWidget {
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit, size: 18),
+                          Icon(Icons.edit, size: 16),
                           SizedBox(width: 8),
-                          Text('Edit'),
+                          Text('Edit', style: TextStyle(fontSize: 13)),
                         ],
                       ),
                     ),
@@ -215,9 +188,9 @@ class TransactionItem extends StatelessWidget {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete, size: 18, color: AppColors.warning),
+                          Icon(Icons.delete, size: 16, color: AppColors.expense),
                           SizedBox(width: 8),
-                          Text('Delete', style: TextStyle(color: AppColors.warning)),
+                          Text('Delete', style: TextStyle(color: AppColors.expense, fontSize: 13)),
                         ],
                       ),
                     ),
@@ -229,3 +202,4 @@ class TransactionItem extends StatelessWidget {
     );
   }
 }
+

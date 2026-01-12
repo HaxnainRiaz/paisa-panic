@@ -82,6 +82,7 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
       );
 
       // Save Currency via Provider to sync local state
+      if (!mounted) return;
       await Provider.of<FinanceProvider>(context, listen: false)
           .setCurrency(authProvider.user!.uid, _selectedCurrency);
 
@@ -127,7 +128,7 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
                       decoration: BoxDecoration(
                         color: index <= _currentStep
                             ? AppColors.secondary
-                            : AppColors.textSecondary.withOpacity(0.3),
+                            : AppColors.textSecondary.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -281,7 +282,7 @@ class _BudgetSetupScreenState extends State<BudgetSetupScreen> {
         ),
         const SizedBox(height: AppSpacing.lg),
         DropdownButtonFormField<String>(
-          value: _selectedCurrency,
+          initialValue: _selectedCurrency,
           decoration: const InputDecoration(
             labelText: 'Currency',
             border: OutlineInputBorder(),

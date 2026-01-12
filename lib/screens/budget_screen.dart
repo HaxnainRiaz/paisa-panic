@@ -88,6 +88,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
           categoryAllocations: _categoryAllocations,
         );
         
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Budget updated successfully!'),
@@ -95,6 +96,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ),
         );
       } catch (e) {
+        if (!mounted) return;
         // revert on error if needed, or show error
         ScaffoldMessenger.of(context).showSnackBar(
            SnackBar(content: Text('Error updating budget: $e')),
@@ -223,7 +225,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                         ],
                         const SizedBox(height: AppSpacing.md),
                         DropdownButtonFormField<String>(
-                          value: _budgetPeriod,
+                          initialValue: _budgetPeriod,
                           decoration: const InputDecoration(
                             labelText: 'Budget Period',
                             border: OutlineInputBorder(),
@@ -276,6 +278,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
                 // Progress indicator
                 CustomCard(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -283,94 +286,59 @@ class _BudgetScreenState extends State<BudgetScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Budget Usage',
+                            'Monthly Spending',
                             style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
+                          Text(
+                            '${(percentageUsed * 100).toStringAsFixed(0)}%',
+                            style: TextStyle(
                               color: isOverBudget
-                                  ? AppColors.warning.withOpacity(0.1)
-                                  : AppColors.secondary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              '${(percentageUsed * 100).toStringAsFixed(1)}%',
-                              style: TextStyle(
-                                color: isOverBudget
-                                    ? AppColors.warning
-                                    : AppColors.secondary,
-                                fontWeight: FontWeight.bold,
-                              ),
+                                  ? AppColors.expense
+                                  : AppColors.secondary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.md),
+                      // Slim Linear Gauge
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: percentageUsed > 1.0 ? 1.0 : percentageUsed,
-                          minHeight: 12,
+                          minHeight: 6,
                           backgroundColor: AppColors.background,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             isOverBudget
-                                ? AppColors.warning
+                                ? AppColors.expense
                                 : AppColors.secondary,
                           ),
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: AppSpacing.lg),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Spent',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              Text(
-                                '$currencySymbol${totalExpenses.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.warning,
-                                ),
-                              ),
-                            ],
+                          Expanded(
+                            child: _buildBudgetStat(
+                              label: 'Spent',
+                              amount: totalExpenses,
+                              symbol: currencySymbol,
+                              color: AppColors.expense,
+                            ),
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Text(
-                                'Remaining',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              Text(
-                                '$currencySymbol${remainingBudget.abs().toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: isOverBudget
-                                      ? AppColors.warning
-                                      : AppColors.secondary,
-                                ),
-                              ),
-                            ],
+                          Container(width: 1, height: 30, color: Colors.black.withValues(alpha: 0.05)),
+                          Expanded(
+                            child: _buildBudgetStat(
+                              label: 'Remaining',
+                              amount: remainingBudget.abs(),
+                              symbol: currencySymbol,
+                              color: isOverBudget ? AppColors.expense : AppColors.secondary,
+                              isRight: true,
+                            ),
                           ),
                         ],
                       ),
@@ -379,39 +347,27 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
-                // Warning card if over budget
+                // Warning indicator if over budget
                 if (isOverBudget)
-                  CustomCard(
-                    color: AppColors.warning.withOpacity(0.1),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.expense.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.expense.withValues(alpha: 0.1)),
+                    ),
                     child: Row(
                       children: [
-                        const Icon(
-                          Icons.warning_amber_rounded,
-                          color: AppColors.warning,
-                          size: 32,
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Budget Exceeded!',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.warning,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'You have exceeded your monthly budget by $currencySymbol${remainingBudget.abs().toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ],
+                        const Icon(Icons.info_outline, color: AppColors.expense, size: 20),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'You have exceeded your budget',
+                            style: TextStyle(
+                              color: AppColors.expense,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ],
@@ -424,4 +380,36 @@ class _BudgetScreenState extends State<BudgetScreen> {
       },
     );
   }
+
+  Widget _buildBudgetStat({
+    required String label,
+    required double amount,
+    required String symbol,
+    required Color color,
+    bool isRight = false,
+  }) {
+    return Column(
+      crossAxisAlignment: isRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '$symbol${amount.toStringAsFixed(2)}',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
 }
+

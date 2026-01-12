@@ -215,7 +215,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 16),
 
               DropdownButtonFormField<Category>(
-                value: _selectedCategory,
+                initialValue: _selectedCategory,
                 hint: const Text('Select Category'),
                 items: _categories
                     .map(
