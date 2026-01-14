@@ -14,7 +14,8 @@ import '../providers/finance_provider.dart';
 
 /// Budget screen with monthly budget setting and progress tracking
 class BudgetScreen extends StatefulWidget {
-  const BudgetScreen({super.key});
+  final bool hideShellElements;
+  const BudgetScreen({super.key, this.hideShellElements = false});
 
   @override
   State<BudgetScreen> createState() => _BudgetScreenState();
@@ -114,6 +115,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
       return AppScaffold(
         title: 'Budget',
         currentRoute: AppRoutes.budget,
+        hideShellElements: widget.hideShellElements,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -146,6 +148,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
         return AppScaffold(
           title: 'Budget',
           currentRoute: AppRoutes.budget,
+          hideShellElements: widget.hideShellElements,
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(

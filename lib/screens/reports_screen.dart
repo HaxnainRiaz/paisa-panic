@@ -12,7 +12,8 @@ import '../providers/finance_provider.dart';
 
 /// Reports & Analytics screen with charts and summaries
 class ReportsScreen extends StatefulWidget {
-  const ReportsScreen({super.key});
+  final bool hideShellElements;
+  const ReportsScreen({super.key, this.hideShellElements = false});
 
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
@@ -33,6 +34,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       return AppScaffold(
         title: 'Reports & Analytics',
         currentRoute: AppRoutes.reports,
+        hideShellElements: widget.hideShellElements,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -40,6 +42,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return AppScaffold(
       title: 'Reports & Analytics',
       currentRoute: AppRoutes.reports,
+      hideShellElements: widget.hideShellElements,
       body: StreamBuilder<List<Transaction>>(
         stream: _firestoreService.getTransactions(userId),
         builder: (context, snapshot) {

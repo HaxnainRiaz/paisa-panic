@@ -12,7 +12,10 @@ import 'add_transaction_screen.dart';
 
 /// Transaction history screen with filters and sorting
 class TransactionHistoryScreen extends StatefulWidget {
-  const TransactionHistoryScreen({super.key});
+  final bool hideShellElements;
+  const TransactionHistoryScreen({super.key, this.hideShellElements = false});
+
+  static final GlobalKey<_TransactionHistoryScreenState> historyKey = GlobalKey<_TransactionHistoryScreenState>();
 
   @override
   State<TransactionHistoryScreen> createState() => _TransactionHistoryScreenState();
@@ -46,7 +49,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     }
   }
 
-  void _showFilterDialog(BuildContext context) {
+  void showFilterDialog(BuildContext context) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -174,12 +177,15 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     return AppScaffold(
       title: 'Transaction History',
       currentRoute: AppRoutes.transactionHistory,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.filter_list),
-          onPressed: () => _showFilterDialog(context),
-        ),
-      ],
+      hideShellElements: widget.hideShellElements,
+      actions: widget.hideShellElements 
+        ? [] 
+        : [
+            IconButton(
+              icon: const Icon(Icons.filter_list),
+              onPressed: () => showFilterDialog(context),
+            ),
+          ],
       body: StreamBuilder<List<app_models.Transaction>>(
         stream: _firestoreService.getTransactions(userId),
         builder: (context, snapshot) {

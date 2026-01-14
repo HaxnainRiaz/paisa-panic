@@ -25,6 +25,7 @@ import 'screens/budget_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/add_transaction_screen.dart';
+import 'screens/main_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,16 +76,14 @@ class MyApp extends StatelessWidget {
                   const AuthGuard(child: BudgetSetupScreen()),
 
               AppRoutes.dashboard: (context) =>
-                  const AuthGuard(child: DashboardScreen()),
+                  const AuthGuard(child: MainWrapper(initialIndex: 0)),
 
-              /// ✅ Add Income (same screen, different type)
               AppRoutes.addIncome: (context) => AuthGuard(
                 child: AddTransactionScreen(
                   type: app_models.TransactionType.income,
                 ),
               ),
 
-              /// ✅ Add Expense (same screen, different type)
               AppRoutes.addExpense: (context) => AuthGuard(
                 child: AddTransactionScreen(
                   type: app_models.TransactionType.expense,
@@ -95,16 +94,16 @@ class MyApp extends StatelessWidget {
                   const AuthGuard(child: CategoriesScreen()),
 
               AppRoutes.transactionHistory: (context) =>
-                  const AuthGuard(child: TransactionHistoryScreen()),
+                  const AuthGuard(child: MainWrapper(initialIndex: 1)),
 
               AppRoutes.budget: (context) =>
-                  const AuthGuard(child: BudgetScreen()),
+                  const AuthGuard(child: MainWrapper(initialIndex: 2)),
 
               AppRoutes.reports: (context) =>
-                  const AuthGuard(child: ReportsScreen()),
+                  const AuthGuard(child: MainWrapper(initialIndex: 3)),
 
               AppRoutes.profile: (context) =>
-                  const AuthGuard(child: ProfileScreen()),
+                  const AuthGuard(child: MainWrapper(initialIndex: 4)),
             },
           );
         },

@@ -63,26 +63,44 @@ class BottomNavBar extends StatelessWidget {
       selectedItemColor: AppColors.secondary,
       unselectedItemColor: AppColors.textSecondary,
       backgroundColor: AppColors.cardSurface,
-      elevation: 8,
+      elevation: 0, // Removed elevation for a flatter, modern look
+      selectedFontSize: 10,
+      unselectedFontSize: 10,
+      iconSize: 20,
       items: const [
         BottomNavigationBarItem(
-          icon: Icon(Icons.dashboard),
+          icon: Padding(
+            padding: EdgeInsets.only(bottom: 4),
+            child: Icon(Icons.dashboard_rounded),
+          ),
           label: 'Dashboard',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.receipt_long),
-          label: 'Transactions',
+          icon: Padding(
+            padding: EdgeInsets.only(bottom: 4),
+            child: Icon(Icons.receipt_long_rounded),
+          ),
+          label: 'History',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.savings),
+          icon: Padding(
+            padding: EdgeInsets.only(bottom: 4),
+            child: Icon(Icons.savings_rounded),
+          ),
           label: 'Budget',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.analytics),
+          icon: Padding(
+            padding: EdgeInsets.only(bottom: 4),
+            child: Icon(Icons.analytics_rounded),
+          ),
           label: 'Reports',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.person),
+          icon: Padding(
+            padding: EdgeInsets.only(bottom: 4),
+            child: Icon(Icons.person_rounded),
+          ),
           label: 'Profile',
         ),
       ],

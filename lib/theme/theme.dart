@@ -37,6 +37,12 @@ class AppTheme {
         surface: AppColors.background,
         error: AppColors.expense,
       ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: ZoomPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
       scaffoldBackgroundColor: AppColors.background,
       
       // Card Theme - Redesigned for subtle depth

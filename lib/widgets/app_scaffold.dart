@@ -21,7 +21,10 @@ class AppScaffold extends StatelessWidget {
     this.actions,
     this.showBottomNav = true,
     this.floatingActionButton,
+    this.hideShellElements = false,
   });
+
+  final bool hideShellElements;
 
   @override
   Widget build(BuildContext context) {
@@ -34,40 +37,23 @@ class AppScaffold extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
+      appBar: hideShellElements ? null : AppBar(
         title: Text(title),
-        // If we're on the dashboard, allow the framework to show the drawer icon when a drawer is present.
-        automaticallyImplyLeading: !showBackButton,
-        leading: showBackButton
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () {
-                  // Pop if possible, otherwise go back to the dashboard
-                  if (Navigator.of(context).canPop()) {
-                    Navigator.of(context).maybePop();
-                  } else {
-                    Navigator.of(
-                      context,
-                    ).pushReplacementNamed(AppRoutes.dashboard);
-                  }
-                },
-              )
-            : null,
+        // If we're on the dashboard, allow the framework to show the drawer icon
+        automaticallyImplyLeading: true, // Let Scaffold handle drawer vs back button
         actions: [
           if (actions != null) ...actions!,
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
-          ),
-          if (currentRoute == AppRoutes.profile)
-            const SizedBox.shrink()
-          else
-            IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () {
-                Navigator.of(context).pushNamed(AppRoutes.profile);
-              },
-            ),
+          if (!isDashboard) ...[
+            if (currentRoute == AppRoutes.profile)
+              const SizedBox.shrink()
+            else
+              IconButton(
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: () {
+                  Navigator.of(context).pushNamed(AppRoutes.profile);
+                },
+              ),
+          ],
         ],
       ),
       drawer: isMobile && isDashboard
@@ -77,7 +63,7 @@ class AppScaffold extends StatelessWidget {
           ? AppDrawer(currentRoute: currentRoute)
           : null,
       body: SafeArea(child: body),
-      bottomNavigationBar: isMobile && showBottomNav
+      bottomNavigationBar: isMobile && showBottomNav && !hideShellElements
           ? BottomNavBar(
               currentRoute: currentRoute,
               onTap: (route) {

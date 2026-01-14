@@ -14,7 +14,8 @@ import 'add_transaction_screen.dart';
 import '../helpers/currency_helper.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final bool hideShellElements;
+  const DashboardScreen({super.key, this.hideShellElements = false});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -35,6 +36,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return AppScaffold(
       title: 'Paisa Panic',
       currentRoute: AppRoutes.dashboard,
+      hideShellElements: widget.hideShellElements,
+      actions: const [],
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddTransactionDialog(context),
         child: const Icon(Icons.add),
@@ -76,52 +79,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   const SizedBox(height: AppSpacing.sm),
                   // Premium Balance Card
-                  GlassCard(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total Balance',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        FittedBox(
-                          child: Text(
-                            '$symbol${currentBalance.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: -0.5,
+                  Hero(
+                    tag: 'balance_card',
+                    child: GlassCard(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Total Balance',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            _buildCompactMetric(
-                              label: 'Income',
-                              amount: totalIncome,
-                              symbol: symbol,
-                              color: AppColors.secondary,
-                              icon: Icons.arrow_downward,
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            child: Text(
+                              '$symbol${currentBalance.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -0.5,
+                              ),
                             ),
-                            const SizedBox(width: 32),
-                            _buildCompactMetric(
-                              label: 'Expenses',
-                              amount: totalExpense,
-                              symbol: symbol,
-                              color: AppColors.expense,
-                              icon: Icons.arrow_upward,
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              _buildCompactMetric(
+                                label: 'Income',
+                                amount: totalIncome,
+                                symbol: symbol,
+                                color: AppColors.secondary,
+                                icon: Icons.arrow_downward,
+                              ),
+                              const SizedBox(width: 32),
+                              _buildCompactMetric(
+                                label: 'Expenses',
+                                amount: totalExpense,
+                                symbol: symbol,
+                                color: AppColors.expense,
+                                icon: Icons.arrow_upward,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
@@ -134,6 +140,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisCount: 4,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
+                    childAspectRatio: 0.75, // Allow more height for the labels
                     children: [
                       _buildQuickAction(
                         title: 'Budget',
@@ -286,13 +293,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
+        const SizedBox(height: 6),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
       ],

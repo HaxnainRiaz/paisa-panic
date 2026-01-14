@@ -12,7 +12,8 @@ import '../widgets/app_scaffold.dart';
 
 /// Profile & Settings screen
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final bool hideShellElements;
+  const ProfileScreen({super.key, this.hideShellElements = false});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -145,6 +146,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return AppScaffold(
       title: 'Profile & Settings',
       currentRoute: AppRoutes.profile,
+      hideShellElements: widget.hideShellElements,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
